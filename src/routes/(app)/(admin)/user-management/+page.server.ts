@@ -2,7 +2,7 @@ import type { ApiResponse } from "$lib/types/api";
 import type { User } from "$lib/types/user";
 import type { PageServerLoad } from "./$types";
 
-export const load: PageServerLoad = async ({ fetch }) => {
+export const load: PageServerLoad = async ({ fetch, locals }) => {
     try {
         const res = await fetch('/api/user/all');
         const result: ApiResponse<User[]> = await res.json();
@@ -14,8 +14,12 @@ export const load: PageServerLoad = async ({ fetch }) => {
             };
         }
 
+        const users = result.data.filter(
+            (user) => user.id !== locals.auth_data?.user_id
+        );
+
         return {
-            users: result.data,
+            users,
             error: null
         };
     } catch {
