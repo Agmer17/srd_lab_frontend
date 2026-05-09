@@ -20,7 +20,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 
             event.locals.auth_data = {
                 user_id: payload.user_id as string,
-                role: payload.role as 'ADMIN' | 'USER'
+                role: payload.role as 'ADMIN' | 'USER',
+                access_token: accessToken,
             };
         } catch (err) {
             console.log(err)
@@ -53,9 +54,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 
                 event.locals.auth_data = {
                     user_id: payload.user_id as string,
-                    role: payload.role as 'ADMIN' | 'USER'
+                    role: payload.role as 'ADMIN' | 'USER',
+                    access_token: authData.access_token
                 };
-                console.log("YESSS UDAH BERHASIL SET COOKIE")
             }
         } catch (err) {
             event.locals.auth_data = null;

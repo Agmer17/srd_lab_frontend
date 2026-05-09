@@ -37,7 +37,7 @@
 		{ title: 'Orders', url: '/orders', icon: RiFileListLine },
 		{ title: 'Payments', url: '/payments', icon: RiBankCardLine },
 		{ title: 'Projects', url: '/projects', icon: RiFolderLine },
-		{ title: 'Messages', url: '/messages', icon: RiMessage2Line }
+		{ title: 'chat', url: '/chat', icon: RiMessage2Line }
 	];
 
 	const adminItems = [

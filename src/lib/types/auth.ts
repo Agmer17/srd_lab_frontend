@@ -1,6 +1,7 @@
 interface RefreshSessionData {
     user_id: string
     role: "ADMIN" | "USER"
+    access_token: string
 }
 
 type AccessTokenPayload = {

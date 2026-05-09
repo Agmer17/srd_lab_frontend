@@ -32,6 +32,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
+	import { Skeleton } from '$lib/components/ui/skeleton';
 	import {
 		DropdownMenu,
 		DropdownMenuContent,
@@ -48,15 +49,18 @@
 		RiShieldCheckLine,
 		RiUser3Line,
 		RiMenLine,
-		RiWomenLine
+		RiWomenLine,
+		RiErrorWarningLine
 	} from 'remixicon-svelte';
 
 	import type { User } from '$lib/types/user';
 	import type { ApiResponse } from '$lib/types/api.js';
-	import { currentUserStore } from '$lib/state/currentUser.svelte.js';
 	import { formatDate, parseError } from '$lib/api_utils.js';
 	import { toast, Toaster } from 'svelte-sonner';
 	import { themeData } from '$lib/state/theme.svelte.js';
+
+	// TAMBAHAN: Import invalidateAll dari SvelteKit
+	import { invalidateAll } from '$app/navigation';
 
 	// ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -67,12 +71,9 @@
 		global_role: 'ADMIN' | 'USER';
 	}
 
-	// ─── Props & Base Data ───────────────────────────────────────────────────────
+	// ─── Props ───────────────────────────────────────────────────────────────────
 
 	const { data } = $props();
-
-	// Mutable list — dipisah dari derived agar bisa di-mutate (delete lokal)
-	let userList = $state<User[]>(data.users);
 
 	// ─── Dialog State ─────────────────────────────────────────────────────────────
 
@@ -81,7 +82,7 @@
 	let deleteOpen = $state(false);
 
 	let selectedUser = $state<User | null>(null);
-	let targetUser = $state<User | null>(null); // user yang sedang di-edit / dihapus
+	let targetUser = $state<User | null>(null);
 
 	let editForm = $state<UpdateUserData>({
 		gender: 'male',
@@ -94,13 +95,13 @@
 
 	let searchQuery = $state('');
 
-	let filteredUsers = $derived(
-		userList.filter(
-			(u) =>
-				u.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				u.email.toLowerCase().includes(searchQuery.toLowerCase())
-		)
-	);
+	function getFilteredUsers(users: User[]) {
+		if (!searchQuery.trim()) return users;
+		const q = searchQuery.toLowerCase();
+		return users.filter(
+			(u) => u.full_name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+		);
+	}
 
 	// ─── Handlers ────────────────────────────────────────────────────────────────
 
@@ -135,14 +136,11 @@
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ role })
 		});
-
 		const json: ApiResponse<string> = await res.json();
-
 		if (!json.success) {
 			toast.error(parseError(json.error), { duration: 1500 });
 			return false;
 		}
-
 		return true;
 	}
 
@@ -155,14 +153,11 @@
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(payload)
 		});
-
 		const json: ApiResponse<string> = await res.json();
-
 		if (!json.success) {
 			toast.error(parseError(json.error), { duration: 1500 });
 			return false;
 		}
-
 		return true;
 	}
 
@@ -170,14 +165,11 @@
 		const res = await fetch(`/api/user/delete/${userId}`, {
 			method: 'DELETE'
 		});
-
 		const json: ApiResponse<string> = await res.json();
-
 		if (!json.success) {
 			toast.error(parseError(json.error), { duration: 1500 });
 			return false;
 		}
-
 		return true;
 	}
 
@@ -186,38 +178,61 @@
 	async function saveEdit() {
 		if (!targetUser) return;
 
-		try {
+		editOpen = false;
+
+		const savePromise = (async () => {
 			const roleChanged = editForm.global_role !== targetUser.global_role;
+
 			const profileChanged =
 				editForm.full_name !== targetUser.full_name ||
-				editForm.gender != targetUser.gender ||
+				editForm.gender !== targetUser.gender ||
 				editForm.phone_number !== targetUser.phone_number;
 
 			const tasks: Promise<boolean>[] = [];
 
-			if (roleChanged) tasks.push(patchRole(targetUser.id, editForm.global_role));
+			if (roleChanged) {
+				tasks.push(patchRole(targetUser.id, editForm.global_role));
+			}
+
 			if (profileChanged) {
 				tasks.push(
 					patchProfile(targetUser.id, {
 						full_name: editForm.full_name,
-						phone_number: editForm.phone_number == '' ? null : editForm.phone_number,
+						phone_number: editForm.phone_number === '' ? null : editForm.phone_number,
 						gender: editForm.gender
 					})
 				);
 			}
 
 			const results = await Promise.all(tasks);
-			if (results.some((ok) => !ok)) return; // salah satu gagal, toast sudah ditampilkan
 
-			// Update lokal state
-			userList = userList.map((u) => (u.id === targetUser!.id ? { ...u, ...editForm } : u));
+			if (results.some((ok) => !ok)) {
+				throw new Error('Failed to update user');
+			}
 
-			toast.success('User updated', { duration: 1500 });
-			editOpen = false;
+			await invalidateAll();
+
+			return {
+				message: 'User updated'
+			};
+		})();
+
+		toast.promise(savePromise, {
+			loading: 'Updating user...',
+			success: (result) => result.message,
+			error: (err) => {
+				if (err instanceof Error) {
+					return err.message;
+				}
+
+				return 'Internal server error';
+			},
+			duration: 1500
+		});
+
+		savePromise.finally(() => {
 			targetUser = null;
-		} catch {
-			toast.error('Internal server error', { duration: 1500 });
-		}
+		});
 	}
 
 	async function confirmDelete() {
@@ -227,22 +242,23 @@
 			const ok = await deleteUser(targetUser.id);
 			if (!ok) return;
 
-			const deletedId = targetUser.id;
-			userList = userList.filter((u) => u.id !== deletedId);
-
-			if (selectedUser?.id === deletedId) detailOpen = false;
+			if (selectedUser?.id === targetUser.id) detailOpen = false;
 
 			toast.success('User deleted', { duration: 1500 });
 			deleteOpen = false;
 			targetUser = null;
+
+			// CUKUP PANGGIL INI, DATA AKAN REFRESH OTOMATIS
+			await invalidateAll();
 		} catch {
 			toast.error('Internal server error', { duration: 1500 });
 		}
 	}
 </script>
 
-<div class="flex flex-col gap-6 p-6">
+<div class="flex animate-in flex-col gap-6 p-6 duration-500 fade-in">
 	<Toaster richColors theme={themeData.value} position="top-right" />
+
 	<!-- Header -->
 	<div class="flex items-start justify-between">
 		<div>
@@ -263,8 +279,17 @@
 				class="bg-card pl-8 text-sm"
 			/>
 		</div>
-		<div class="flex items-center gap-2 text-xs text-muted-foreground">
-			<span>{filteredUsers.length} result{filteredUsers.length !== 1 ? 's' : ''}</span>
+
+		<div class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+			<!-- MENGGUNAKAN AWAIT UNTUK JUMLAH RESULT -->
+			{#await data.usersPromise}
+				<Skeleton class="h-4 w-16" />
+			{:then res}
+				{#if !res.error}
+					{@const count = getFilteredUsers(res.users).length}
+					<span>{count} result{count !== 1 ? 's' : ''}</span>
+				{/if}
+			{/await}
 		</div>
 	</div>
 
@@ -294,107 +319,162 @@
 			</TableHeader>
 
 			<TableBody>
-				{#if filteredUsers.length === 0}
-					<TableRow>
-						<TableCell colspan={6} class="py-16 text-center">
-							<div class="flex flex-col items-center gap-2 text-muted-foreground">
-								<RiUser3Line class="size-8 opacity-30" />
-								<span class="text-sm">No users found</span>
-							</div>
-						</TableCell>
-					</TableRow>
-				{:else}
-					{#each filteredUsers as user (user.id)}
-						<TableRow
-							class="cursor-pointer border-b border-border/60 transition-colors hover:bg-muted/30"
-							onclick={() => openDetail(user)}
-						>
+				<!-- PENDEKATAN SVELTEKIT SEJATI: MENGGUNAKAN {#await} -->
+				{#await data.usersPromise}
+					<!-- Loading Skeletons -->
+					{#each Array(5) as _}
+						<TableRow class="border-b border-border/60 hover:bg-transparent">
 							<TableCell class="py-3 pl-4">
 								<div class="flex items-center gap-3">
-									<Avatar class="size-8 rounded-md">
-										<AvatarImage
-											src={user.profile_picture ?? undefined}
-											alt={user.full_name}
-											referrerpolicy="no-referrer"
-										/>
-										<AvatarFallback
-											class="rounded-md bg-secondary text-xs font-semibold text-secondary-foreground"
-										>
-											{initials(user.full_name)}
-										</AvatarFallback>
-									</Avatar>
-									<div class="min-w-0">
-										<p
-											class="truncate text-sm leading-tight font-medium text-foreground capitalize"
-										>
-											{user.full_name}
-										</p>
-										<p class="truncate text-xs text-muted-foreground">{user.email}</p>
+									<Skeleton class="size-8 rounded-md" />
+									<div class="flex flex-col gap-1.5">
+										<Skeleton class="h-3.5 w-32" />
+										<Skeleton class="h-3 w-24" />
 									</div>
 								</div>
 							</TableCell>
-
-							<TableCell class="py-3">
-								{#if user.global_role === 'ADMIN'}
-									<Badge variant="default" class="text-primary-foreground">
-										<RiTeamLine class="size-3" /> Admin
-									</Badge>
-								{:else}
-									<Badge variant="outline" class="gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
-										<RiUser3Line class="size-3" /> User
-									</Badge>
-								{/if}
-							</TableCell>
-
-							<TableCell class="py-3 text-sm text-muted-foreground">
-								{#if user.phone_number}
-									{user.phone_number}
-								{:else}
-									<span class="text-xs text-muted-foreground/40 italic">—</span>
-								{/if}
-							</TableCell>
-
-							<TableCell class="py-3">
-								<Badge variant="secondary">
-									{user.oauth_provider}
-								</Badge>
-							</TableCell>
-
-							<TableCell class="py-3 text-xs text-muted-foreground">
-								{formatDate(user.created_at)}
-							</TableCell>
-
-							<TableCell class="py-3 pr-3 text-right">
-								<DropdownMenu>
-									<DropdownMenuTrigger onclick={(e) => e.stopPropagation()}>
-										<Button variant="ghost" size="icon" class="size-7 text-muted-foreground">
-											<RiMore2Line class="size-4" />
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent align="end" class="w-40">
-										<DropdownMenuItem onclick={(e) => openEdit(user, e)}>
-											<RiEditLine class="mr-2 size-3.5" /> Edit
-										</DropdownMenuItem>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem
-											class="text-destructive focus:text-destructive"
-											onclick={(e) => openDelete(user, e)}
-										>
-											<RiDeleteBin7Line class="mr-2 size-3.5" /> Delete
-										</DropdownMenuItem>
-									</DropdownMenuContent>
-								</DropdownMenu>
-							</TableCell>
+							<TableCell class="py-3"><Skeleton class="h-5 w-16 rounded-full" /></TableCell>
+							<TableCell class="py-3"><Skeleton class="h-4 w-28" /></TableCell>
+							<TableCell class="py-3"><Skeleton class="h-5 w-20 rounded-full" /></TableCell>
+							<TableCell class="py-3"><Skeleton class="h-4 w-24" /></TableCell>
+							<TableCell class="py-3 pr-3 text-right"
+								><Skeleton class="ml-auto size-7 rounded-md" /></TableCell
+							>
 						</TableRow>
 					{/each}
-				{/if}
+				{:then res}
+					{#if res.error}
+						<!-- Error State -->
+						<TableRow class="hover:bg-transparent">
+							<TableCell colspan={6} class="py-16 text-center">
+								<div class="flex flex-col items-center gap-2 text-destructive">
+									<RiErrorWarningLine class="size-8 opacity-80" />
+									<span class="text-sm font-medium">Failed to load users</span>
+									<span class="text-xs opacity-80">{parseError(res.error)}</span>
+								</div>
+							</TableCell>
+						</TableRow>
+					{:else}
+						<!-- Bikin variable konstan lokal untuk tabel yg sudah di filter -->
+						{@const filteredUsers = getFilteredUsers(res.users)}
+
+						{#if filteredUsers.length === 0}
+							<!-- Empty State -->
+							<TableRow class="hover:bg-transparent">
+								<TableCell colspan={6} class="py-16 text-center">
+									<div class="flex flex-col items-center gap-2 text-muted-foreground">
+										<RiUser3Line class="size-8 opacity-30" />
+										<span class="text-sm">No users found</span>
+									</div>
+								</TableCell>
+							</TableRow>
+						{:else}
+							<!-- Actual Data -->
+							{#each filteredUsers as user (user.id)}
+								<TableRow
+									class="cursor-pointer border-b border-border/60 transition-colors hover:bg-muted/30"
+									onclick={() => openDetail(user)}
+								>
+									<TableCell class="py-3 pl-4">
+										<div class="flex items-center gap-3">
+											<Avatar class="size-8 rounded-md">
+												<AvatarImage
+													src={user.profile_picture ?? undefined}
+													alt={user.full_name}
+													referrerpolicy="no-referrer"
+												/>
+												<AvatarFallback
+													class="rounded-md bg-secondary text-xs font-semibold text-secondary-foreground"
+												>
+													{initials(user.full_name)}
+												</AvatarFallback>
+											</Avatar>
+											<div class="min-w-0">
+												<p
+													class="truncate text-sm leading-tight font-medium text-foreground capitalize"
+												>
+													{user.full_name}
+												</p>
+												<p class="truncate text-xs text-muted-foreground">{user.email}</p>
+											</div>
+										</div>
+									</TableCell>
+
+									<TableCell class="py-3">
+										{#if user.global_role === 'ADMIN'}
+											<Badge variant="default" class="text-primary-foreground">
+												<RiTeamLine class="mr-1 size-3" /> Admin
+											</Badge>
+										{:else}
+											<Badge
+												variant="outline"
+												class="gap-1 rounded-md px-2 py-0.5 text-xs font-medium"
+											>
+												<RiUser3Line class="size-3" /> User
+											</Badge>
+										{/if}
+									</TableCell>
+
+									<TableCell class="py-3 text-sm text-muted-foreground">
+										{#if user.phone_number}
+											{user.phone_number}
+										{:else}
+											<span class="text-xs text-muted-foreground/40 italic">—</span>
+										{/if}
+									</TableCell>
+
+									<TableCell class="py-3">
+										<Badge variant="secondary">
+											{user.oauth_provider}
+										</Badge>
+									</TableCell>
+
+									<TableCell class="py-3 text-xs text-muted-foreground">
+										{formatDate(user.created_at)}
+									</TableCell>
+
+									<TableCell class="py-3 pr-3 text-right">
+										<DropdownMenu>
+											<DropdownMenuTrigger onclick={(e) => e.stopPropagation()}>
+												<Button variant="ghost" size="icon" class="size-7 text-muted-foreground">
+													<RiMore2Line class="size-4" />
+												</Button>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent align="end" class="w-40">
+												<DropdownMenuItem onclick={(e) => openEdit(user, e)}>
+													<RiEditLine class="mr-2 size-3.5" /> Edit
+												</DropdownMenuItem>
+												<DropdownMenuSeparator />
+												<DropdownMenuItem
+													class="text-destructive focus:text-destructive"
+													onclick={(e) => openDelete(user, e)}
+												>
+													<RiDeleteBin7Line class="mr-2 size-3.5" /> Delete
+												</DropdownMenuItem>
+											</DropdownMenuContent>
+										</DropdownMenu>
+									</TableCell>
+								</TableRow>
+							{/each}
+						{/if}
+					{/if}
+				{:catch}
+					<!-- Fallback Error jika koneksi putus -->
+					<TableRow class="hover:bg-transparent">
+						<TableCell colspan={6} class="py-16 text-center text-destructive">
+							Failed to connect to server.
+						</TableCell>
+					</TableRow>
+				{/await}
 			</TableBody>
 		</Table>
 	</div>
-	<p class="text-xs text-muted-foreground">
+	<p class="mt-4 text-xs text-muted-foreground">
 		Click a row to view full details • Use ··· menu to edit or delete
 	</p>
 </div>
+
+<!-- (Bagian komponen <Dialog> & <AlertDialog> tetap persis sama dan tidak ada perubahan) -->
 
 <!-- ─── Dialogs ──────────────────────────────────────────────────────────────── -->
 
