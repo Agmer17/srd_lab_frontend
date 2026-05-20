@@ -1,36 +1,46 @@
 <script lang="ts">
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
-
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
-
 	import { Separator } from '$lib/components/ui/separator';
-
 	import { Button } from '$lib/components/ui/button'; // <-- Tambahan
-
 	import { Input } from '$lib/components/ui/input'; // <-- Tambahan
-
 	import { formatDate } from '$lib/api_utils.js';
-
 	import { RiMessage3Line, RiGroupLine, RiSearchLine, RiAddLine } from 'remixicon-svelte';
-
 	import type { LatestChatDto } from '$lib/types/chat.js';
-
 	import Badge from '$lib/components/ui/badge/badge.svelte';
-
 	import Attachment2 from 'remixicon-svelte/icons/attachment-2';
-
 	import { goto } from '$app/navigation';
-
 	import { page } from '$app/state';
+	import { initials } from '$lib/string_utils.js';
+	import { getContext } from 'svelte';
 
 	let { children, data } = $props();
+	const ws = getContext<{
+		socket: WebSocket | null;
+		connected: boolean;
+		send: (payload: unknown) => void;
+	}>('ws');
 
 	let chatList = $state<LatestChatDto[]>(data.latest_chat ?? []);
+	let scrollViewport: HTMLDivElement;
 
 	const activeChat = $derived.by(() => {
 		const parts = page.url.pathname.split('/');
 
-		return parts[1] === 'chat' && parts[2] ? parts[2] : null;
+		// /chat/group/:id
+		// /chat/personal/:id
+
+		if (parts[1] !== 'chat') return null;
+
+		const type = parts[2];
+		const id = parts[3];
+
+		if (!type || !id) return null;
+
+		return {
+			type,
+			id
+		};
 	});
 
 	let searchQuery = $state('');
@@ -52,9 +62,44 @@
 			goto('/chat/personal/' + lts.chatroom_id);
 		}
 	}
+
+	$effect(() => {
+		const socket = ws.socket;
+		if (!socket) return;
+
+		function onMessage(event: MessageEvent) {
+			try {
+				const payload = JSON.parse(event.data);
+
+				if (payload.type === 'CHAT') {
+					const incoming = payload.data;
+
+					const idx = chatList.findIndex(
+						(c) => c.chatroom_id === incoming.chatroom_id || c.project_id === incoming.chatroom_id
+					);
+
+					if (idx !== -1) {
+						chatList[idx] = {
+							...chatList[idx],
+							last_message: incoming.text,
+							last_message_at: incoming.created_at
+						};
+
+						const updated = chatList.splice(idx, 1)[0];
+						chatList.unshift(updated);
+					}
+				}
+			} catch (e) {
+				console.error('[WS] Parse error', e);
+			}
+		}
+
+		socket.addEventListener('message', onMessage);
+		return () => socket.removeEventListener('message', onMessage);
+	});
 </script>
 
-<div class="flex h-screen w-full flex-col bg-background text-foreground md:flex-row">
+<div class="flex h-full w-full flex-col overflow-hidden bg-background text-foreground md:flex-row">
 	<!-- Sidebar -->
 
 	<aside
@@ -108,9 +153,12 @@
 		<!-- Chat List (WhatsApp Density + SaaS Cleanliness) -->
 
 		<ScrollArea class="flex-1 overflow-y-auto">
-			<div class="flex flex-col gap-0.5 p-2">
+			<div class="flex flex-col gap-0.5 p-2" bind:this={scrollViewport}>
 				{#each filtered as chat}
-					{@const isActive = activeChat === chat.chatroom_id}
+					{@const isActive =
+						activeChat &&
+						((activeChat.type === 'group' && activeChat.id === chat.project_id) ||
+							(activeChat.type === 'personal' && activeChat.id === chat.chatroom_id))}
 
 					<!-- List item tetap pakai button custom agar state hover & active lebih mudah dikontrol tanpa bentrok dengan base style Button shadcn -->
 
@@ -125,19 +173,19 @@
 						<!-- Avatar: Bulat untuk DM, Kotak membulat (Jira style) untuk Group -->
 
 						{#if chat.type === 'project'}
-							<div
-								class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground"
-							>
-								<RiGroupLine class="h-5 w-5" />
-							</div>
+							<Avatar class="h-11 w-11 shrink-0 rounded-full border border-border">
+								<AvatarFallback class="bg-secondary text-xs font-medium text-secondary-foreground">
+									<RiGroupLine class="h-5 w-5" />
+								</AvatarFallback>
+							</Avatar>
 						{:else}
 							<Avatar class="h-11 w-11 shrink-0 rounded-full border border-border">
 								{#if chat.avatar}
 									<AvatarImage src={chat.avatar} alt={chat.name} class="object-cover" />
 								{/if}
 
-								<AvatarFallback class="bg-muted text-xs font-medium text-muted-foreground">
-									{chat.name.slice(0, 2).toUpperCase()}
+								<AvatarFallback class="bg-secondary text-xs font-medium text-secondary-foreground">
+									{initials(chat.name)}
 								</AvatarFallback>
 							</Avatar>
 						{/if}

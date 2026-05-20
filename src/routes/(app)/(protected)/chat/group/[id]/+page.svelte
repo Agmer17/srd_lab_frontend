@@ -1,47 +1,31 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-
-	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
-
 	import { Button } from '$lib/components/ui/button';
-
 	import { Input } from '$lib/components/ui/input';
-
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
-
 	import { Skeleton } from '$lib/components/ui/skeleton';
-
 	import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
-
+	import ChatInput from '$lib/components/chat/chatInput.svelte';
 	import {
-		RiSendPlaneFill,
-		RiAttachmentLine,
 		RiErrorWarningLine,
 		RiChatOffLine,
-		RiImageLine,
-		RiCloseLine,
-		RiFileTextLine,
-		RiDownloadCloud2Line,
-		RiMusic2Line
+		RiGroupLine,
+		RiArrowLeftLine
 	} from 'remixicon-svelte';
 
-	import { initials } from '$lib/string_utils';
-
-	import type { ChatDataDto } from '$lib/types/chat';
-
-	import { formatDate } from '$lib/api_utils.js';
-
 	import { currentUserStore } from '$lib/state/currentUser.svelte.js';
+	import ChatBubble from '$lib/components/chat/chatBubble.svelte';
+	import { formatDate } from '$lib/api_utils.js';
+	import { goto } from '$app/navigation';
+	import type { ApiResponse } from '$lib/types/api.js';
+	import type { ChatDataDto, PostChatDto } from '$lib/types/chat.js';
+	import { postChatToForm } from '$lib/chat_utils.js';
 
 	let { data } = $props();
 
 	const CURRENT_USER_ID = $derived(currentUserStore.data?.id);
 
 	let inputText = $state('');
-
-	let selectedFiles = $state<File[]>([]);
-
-	// Svelte Action pengganti $effect biar gak ala-ala React
 
 	function autoScroll(node: HTMLElement) {
 		setTimeout(() => {
@@ -51,16 +35,24 @@
 		return { destroy() {} };
 	}
 
-	async function handleSendMessage(e: Event) {
-		e.preventDefault();
-
-		if (!inputText.trim() && selectedFiles.length === 0) return;
-
-		console.log('Sending message:', inputText);
-
+	async function handleSendMessage(chatData: PostChatDto) {
+		if (chatData.text == '' && chatData.attachment.length == 0) {
+			return;
+		}
 		inputText = '';
+		const form = postChatToForm(chatData);
+		const res = await fetch('/api/chat/personal/send/' + data.roomData.other_user_id, {
+			method: 'POST',
+			body: form
+		});
 
-		selectedFiles = [];
+		const apiResponse: ApiResponse<ChatDataDto> = await res.json();
+
+		if (apiResponse.success) {
+			console.log(apiResponse.data);
+		} else {
+			console.log(apiResponse.error);
+		}
 
 		await tick();
 
@@ -68,141 +60,43 @@
 	}
 </script>
 
-{#snippet chatBubble(chat: ChatDataDto, isCurrentUser: boolean, showAvatar: boolean)}
-	<div class="group flex items-end gap-3 {isCurrentUser ? 'flex-row-reverse' : 'flex-row'} mb-4">
-		<div class="flex w-8 shrink-0 flex-col items-center justify-end">
-			{#if showAvatar && !isCurrentUser}
-				<Avatar class="h-8 w-8 shadow-sm">
-					<AvatarImage src={chat.sender_profile_picture} alt={chat.sender_full_name} />
-
-					<AvatarFallback class="bg-primary/10 text-xs text-primary"
-						>{initials(chat.sender_full_name)}</AvatarFallback
-					>
-				</Avatar>
-			{/if}
-		</div>
-
-		<div
-			class="flex flex-col {isCurrentUser ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-[75%]"
-		>
-			{#if showAvatar && !isCurrentUser}
-				<span class="mb-1 ml-1 text-xs font-medium text-muted-foreground">
-					{chat.sender_full_name}
-				</span>
-			{/if}
-
-			<div class="flex w-full flex-col gap-2">
-				{#if chat.chat_media && chat.chat_media.length > 0}
-					<div class="flex flex-wrap gap-2 {isCurrentUser ? 'justify-end' : 'justify-start'}">
-						{#each chat.chat_media as media}
-							{#if media.media_type === 'image'}
-								<div class="relative overflow-hidden rounded-md border bg-muted shadow-sm">
-									<img
-										src={`/api/chat/media/${media.media_access_url.split('/').pop()}`}
-										alt="Gambar terlampir"
-										class="max-h-[300px] min-h-[100px] w-auto min-w-[150px] object-cover transition-opacity hover:opacity-90"
-										loading="lazy"
-										onerror={(e) => {
-											const target = e.target as HTMLImageElement;
-
-											target.style.display = 'none';
-
-											target.parentElement?.classList.add(
-												'flex',
-
-												'items-center',
-
-												'justify-center',
-
-												'p-4'
-											);
-
-											target.parentElement!.innerHTML =
-												'<span class="text-xs text-muted-foreground flex flex-col items-center gap-1"><RiImageLine class="h-5 w-5"/> Image unavailable</span>';
-										}}
-									/>
-								</div>
-							{:else if media.media_type === 'video'}
-								<video
-									src={media.media_access_url}
-									controls
-									class="max-h-[300px] w-full rounded-md border bg-black shadow-sm"
-								>
-									<track kind="captions" />
-								</video>
-							{:else if media.media_type === 'audio'}
-								<div
-									class="flex min-w-[250px] items-center gap-3 rounded-md border bg-card p-2 shadow-sm"
-								>
-									<div
-										class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
-									>
-										<RiMusic2Line class="h-5 w-5" />
-									</div>
-
-									<audio src={media.media_access_url} controls class="h-10 w-full" />
-								</div>
-							{:else if media.media_type === 'document'}
-								<a
-									href={media.media_access_url}
-									target="_blank"
-									rel="noopener noreferrer"
-									class="group/doc flex w-[250px] items-center gap-3 rounded-md border bg-card p-3 text-sm shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-								>
-									<div
-										class="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-primary/10 text-primary"
-									>
-										<RiFileTextLine class="h-5 w-5" />
-									</div>
-
-									<div class="flex flex-1 flex-col overflow-hidden">
-										<span class="truncate font-medium">Dokumen Terlampir</span>
-
-										<span class="text-xs text-muted-foreground uppercase"
-											>{media.media_access_url.split('.').pop() || 'FILE'}</span
-										>
-									</div>
-
-									<RiDownloadCloud2Line
-										class="h-5 w-5 text-muted-foreground transition-transform group-hover/doc:-translate-y-0.5"
-									/>
-								</a>
-							{/if}
-						{/each}
-					</div>
-				{/if}
-
-				{#if chat.text}
-					<div
-						class="relative px-4 py-2.5 text-[15px] leading-relaxed shadow-sm {isCurrentUser
-							? 'rounded-2xl rounded-tr-sm bg-primary text-primary-foreground'
-							: 'rounded-2xl rounded-tl-sm border bg-muted text-foreground'}"
-					>
-						<p class="break-words whitespace-pre-wrap">{chat.text}</p>
-
-						<div class="mt-1 flex justify-end opacity-70">
-							<span class="text-[10px] tracking-wide">{formatDate(chat.created_at)}</span>
-						</div>
-					</div>
-				{/if}
-			</div>
-		</div>
-	</div>
-{/snippet}
-
 <!-- ROOT LAYOUT: Flex Column + h-full + overflow-hidden biar ngerem scroll halaman dari luar -->
 
 <div class="flex h-full w-full flex-col overflow-hidden bg-background">
 	<!-- HEADER: Pake shrink-0 biar fix gak kegencet atau membesar -->
 
-	<header class="flex h-[72px] shrink-0 items-center justify-between border-b bg-background px-6">
-		<div class="flex items-center gap-4">
-			<Avatar class="h-11 w-11 shadow-sm">
-				<AvatarFallback class="bg-primary/10 font-semibold text-primary">GC</AvatarFallback>
-			</Avatar>
+	<header
+		class="flex shrink-0 items-center justify-between border-b bg-background/95 p-4 backdrop-blur hover:cursor-pointer supports-backdrop-filter:bg-background/80"
+	>
+		<div class="flex min-w-0 items-center gap-3">
+			<!-- Back Button Mobile -->
 
-			<div class="flex flex-col justify-center">
-				<h2 class="text-base leading-tight font-semibold text-foreground">Nama Chatroom</h2>
+			<Button
+				variant="ghost"
+				size="icon"
+				class="h-10 w-10 shrink-0 rounded-full md:hidden"
+				onclick={() => goto('/chat')}
+			>
+				<RiArrowLeftLine class="h-5 w-5" />
+			</Button>
+
+			<!-- Group Avatar -->
+
+			<div
+				class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-secondary shadow-sm"
+			>
+				<RiGroupLine class="h-5 w-5 text-secondary-foreground" />
+			</div>
+
+			<!-- Room Info -->
+
+			<div class="flex min-w-0 flex-col justify-center">
+				<h2 class="truncate text-[16px] leading-tight font-semibold text-foreground">
+					{data.roomData.name}
+				</h2>
+				<p class="truncate text-sm text-[12px] leading-tight text-foreground/50">
+					Click here to see the projects details
+				</p>
 			</div>
 		</div>
 	</header>
@@ -259,12 +153,11 @@
 				<ScrollArea class="h-full w-full overflow-y-auto px-6">
 					<div class="flex flex-col pt-6 pb-4">
 						{#each result.chats as chat, index}
-							{@const isCurrentUser = chat.sender_id === CURRENT_USER_ID}
-
 							{@const showAvatar =
 								index === 0 || result.chats[index - 1].sender_id !== chat.sender_id}
 
-							{@render chatBubble(chat, isCurrentUser, showAvatar)}
+							<ChatBubble {chat} currentUserId={CURRENT_USER_ID} {showAvatar} {formatDate}
+							></ChatBubble>
 						{/each}
 
 						<!-- Trigger action scroll di sini, no $effect react-reactan -->
@@ -276,64 +169,7 @@
 		{/await}
 	</div>
 
-	<!-- FOOTER / INPUT: Pake shrink-0 biar ngunci di bawah gak ikut ke-scroll -->
-
 	<footer class="shrink-0 border-t bg-background p-4">
-		{#if selectedFiles.length > 0}
-			<div class="flex items-center gap-3 overflow-x-auto pb-3">
-				<div
-					class="group relative flex h-16 w-16 shrink-0 items-center justify-center rounded-md border bg-muted shadow-sm"
-				>
-					<RiImageLine class="h-6 w-6 text-muted-foreground" />
-
-					<Button
-						variant="destructive"
-						size="icon"
-						class="absolute -top-2 -right-2 h-6 w-6 scale-0 rounded-full shadow-md transition-transform group-hover:scale-100"
-						onclick={() => (selectedFiles = [])}
-					>
-						<RiCloseLine class="h-4 w-4" />
-					</Button>
-				</div>
-			</div>
-		{/if}
-
-		<form class="flex items-end gap-3" onsubmit={handleSendMessage}>
-			<Button
-				type="button"
-				variant="ghost"
-				size="icon"
-				class="h-12 w-12 shrink-0 rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-			>
-				<RiAttachmentLine class="h-6 w-6" />
-
-				<span class="sr-only">Lampirkan file</span>
-			</Button>
-
-			<div
-				class="relative flex flex-1 items-center rounded-xl border border-transparent bg-muted/50 shadow-sm transition-colors focus-within:border-primary/30 focus-within:bg-background"
-			>
-				<Input
-					bind:value={inputText}
-					placeholder="Ketik pesan..."
-					class="min-h-12 w-full border-0 bg-transparent px-4 py-3 shadow-none focus-visible:ring-0"
-					autocomplete="off"
-				/>
-			</div>
-
-			<Button
-				type="submit"
-				size="icon"
-				disabled={!inputText.trim() && selectedFiles.length === 0}
-				class="h-12 w-12 shrink-0 rounded-full transition-all duration-200 {inputText.trim() ||
-				selectedFiles.length > 0
-					? 'scale-100 bg-primary text-primary-foreground shadow-md hover:bg-primary/90'
-					: 'scale-95 bg-muted text-muted-foreground opacity-70'}"
-			>
-				<RiSendPlaneFill class="ml-1 h-5 w-5" />
-
-				<span class="sr-only">Kirim pesan</span>
-			</Button>
-		</form>
+		<ChatInput bind:value={inputText} placeholder="Ketik pesan..." onSend={handleSendMessage} />
 	</footer>
 </div>

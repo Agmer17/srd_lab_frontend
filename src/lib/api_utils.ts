@@ -12,6 +12,6 @@ export function parseError(error: any): string {
 
 
 export const formatDate = (d?: string) =>
-		d
-			? new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-			: '-';
+	d
+		? new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+		: '-';

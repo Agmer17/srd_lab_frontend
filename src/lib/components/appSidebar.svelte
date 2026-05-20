@@ -185,6 +185,7 @@
                                     data-[active=true]:bg-sidebar-primary
                                     data-[active=true]:text-sidebar-primary-foreground
                                     data-[active=true]:hover:bg-sidebar-primary"
+								tooltipContent={item.title}
 							>
 								{#snippet child({ props })}
 									<a href={item.url} {...props}>
@@ -220,6 +221,7 @@
                                         hover:bg-sidebar-accent hover:text-sidebar-foreground
                                         data-[active=true]:bg-sidebar-primary
                                         data-[active=true]:text-sidebar-primary-foreground"
+									tooltipContent={item.title}
 								>
 									{#snippet child({ props })}
 										<a href={item.url} {...props}>
@@ -249,6 +251,7 @@
 							{#each adminItems as item (item.title)}
 								<Sidebar.MenuItem>
 									<Sidebar.MenuButton
+										tooltipContent={item.title}
 										isActive={isActive(item.url)}
 										class="h-8 gap-2 rounded-lg px-2.5 text-[13px] font-medium
                                             text-sidebar-primary/90

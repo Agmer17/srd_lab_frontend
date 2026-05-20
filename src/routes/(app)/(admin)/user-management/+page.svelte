@@ -296,28 +296,6 @@
 	<!-- Table -->
 	<div class="overflow-hidden rounded-lg border border-border bg-card">
 		<Table>
-			<TableHeader>
-				<TableRow class="border-b border-border hover:bg-transparent">
-					<TableHead
-						class="w-[280px] pl-4 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-						>User</TableHead
-					>
-					<TableHead class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-						>Role</TableHead
-					>
-					<TableHead class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-						>Phone</TableHead
-					>
-					<TableHead class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-						>Provider</TableHead
-					>
-					<TableHead class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-						>Joined</TableHead
-					>
-					<TableHead class="w-10 pr-4"></TableHead>
-				</TableRow>
-			</TableHeader>
-
 			<TableBody>
 				<!-- PENDEKATAN SVELTEKIT SEJATI: MENGGUNAKAN {#await} -->
 				{#await data.usersPromise}

@@ -1,4 +1,4 @@
-export function initials(name: string) {
+export function initials(name: string | undefined | null) {
     if (!name) return '?';
     return name
         .split(' ')
@@ -6,4 +6,8 @@ export function initials(name: string) {
         .slice(0, 2)
         .map((n) => n[0].toUpperCase())
         .join('');
+}
+
+export function generateId(): string {
+    return Math.random().toString(36).slice(2, 9);
 }

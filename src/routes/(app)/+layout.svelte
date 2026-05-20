@@ -5,6 +5,9 @@
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { page } from '$app/state';
 	import { currentUserStore } from '$lib/state/currentUser.svelte.js';
+	import { Toaster, toast } from 'svelte-sonner';
+	import type { ChatDataDto } from '$lib/types/chat.js';
+	import ChatNotification from '$lib/components/chat/chatNotification.svelte';
 
 	let { children, data } = $props();
 
@@ -18,7 +21,6 @@
 		return pathname.split('/').pop() || 'Home';
 	});
 
-	// Sync user store — $effect valid karena data bisa berubah setelah invalidate
 	$effect(() => {
 		currentUserStore.data = data.user;
 	});
@@ -37,9 +39,24 @@
 			console.log('[WS] Connected');
 		};
 
-		socket.onmessage = (event) => {
-			console.log('[WS] Message:', event.data);
-		};
+		socket.addEventListener('message', (event) => {
+			try {
+				const payload = JSON.parse(event.data);
+				if (payload.type === 'CHAT') {
+					const chatData: ChatDataDto = payload.data;
+					const isOnSameChatroom = page.url.pathname.includes(payload.data.chatroom_id);
+					if (payload.sender_id === data.user?.id) return;
+					if (isOnSameChatroom) return;
+
+					toast.custom(ChatNotification, {
+						componentProps: { chat: chatData },
+						duration: 2000 // Beri waktu sedikit lama agar user bisa baca media type
+					});
+				}
+			} catch (error) {
+				console.log(error);
+			}
+		});
 
 		socket.onerror = (error) => {
 			console.error('[WS] Error:', error);
@@ -74,7 +91,8 @@
 	});
 </script>
 
-<Sidebar.Provider>
+<Toaster position="top-right" toastOptions={{ unstyled: true }} />
+<Sidebar.Provider open={false}>
 	<AppSidebar />
 	<Sidebar.Inset class="flex h-screen flex-col bg-background">
 		<!-- Header Top Bar -->
@@ -96,7 +114,7 @@
 		</header>
 
 		<!-- Area Konten Utama -->
-		<main class="flex flex-1 flex-col">
+		<main class="flex min-h-0 flex-1 flex-col overflow-hidden">
 			{@render children?.()}
 		</main>
 	</Sidebar.Inset>
