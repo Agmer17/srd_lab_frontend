@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tick } from 'svelte';
+	import { getContext, tick } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
@@ -26,6 +26,12 @@
 	const CURRENT_USER_ID = $derived(currentUserStore.data?.id);
 
 	let inputText = $state('');
+	const ws = getContext<{
+		socket: WebSocket | null;
+		connected: boolean;
+		send: (payload: unknown) => void;
+	}>('ws');
+	let wsMessages = $state<ChatDataDto[]>([]);
 
 	function autoScroll(node: HTMLElement) {
 		setTimeout(() => {
@@ -40,8 +46,9 @@
 			return;
 		}
 		inputText = '';
+		chatData.room_id = data.roomData.chatroom_id;
 		const form = postChatToForm(chatData);
-		const res = await fetch('/api/chat/personal/send/' + data.roomData.other_user_id, {
+		const res = await fetch('/api/chat/group/send/' + data.roomData.project_id, {
 			method: 'POST',
 			body: form
 		});
@@ -58,6 +65,29 @@
 
 		document.getElementById('chat-scroll-anchor')?.scrollIntoView({ behavior: 'smooth' });
 	}
+
+	$effect(() => {
+		const socket = ws.socket;
+		if (!socket) return;
+
+		function onMessage(event: MessageEvent) {
+			try {
+				const payload = JSON.parse(event.data);
+
+				if (payload.type === 'CHAT' && payload.data.chatroom_id === data.roomData.chatroom_id) {
+					wsMessages.push(payload.data);
+				}
+			} catch (e) {
+				console.error('[WS] Parse error', e);
+			}
+		}
+
+		socket.addEventListener('message', onMessage);
+
+		return () => {
+			socket.removeEventListener('message', onMessage);
+		};
+	});
 </script>
 
 <!-- ROOT LAYOUT: Flex Column + h-full + overflow-hidden biar ngerem scroll halaman dari luar -->
@@ -131,7 +161,7 @@
 						<AlertDescription>{result.error}</AlertDescription>
 					</Alert>
 				</div>
-			{:else if !result.chats || result.chats.length === 0}
+			{:else if (!result.chats || result.chats.length === 0) && wsMessages.length === 0}
 				<div
 					class="flex flex-1 flex-col items-center justify-center space-y-4 p-6 text-center opacity-60"
 				>
@@ -140,27 +170,32 @@
 					</div>
 
 					<div>
-						<h3 class="text-lg font-medium text-foreground">Belum ada obrolan</h3>
+						<h3 class="text-lg font-medium text-foreground">No message yet</h3>
 
 						<p class="mt-1 text-sm text-muted-foreground">
-							Kirim pesan pertama untuk memulai percakapan di grup ini.
+							be the first one to send a chat in this group!
 						</p>
 					</div>
 				</div>
 			{:else}
-				<!-- Pake h-full di dalem flex-1 biar auto detect tinggi container -->
-
 				<ScrollArea class="h-full w-full overflow-y-auto px-6">
 					<div class="flex flex-col pt-6 pb-4">
+						<!-- Pesan dari server load -->
 						{#each result.chats as chat, index}
 							{@const showAvatar =
 								index === 0 || result.chats[index - 1].sender_id !== chat.sender_id}
-
-							<ChatBubble {chat} currentUserId={CURRENT_USER_ID} {showAvatar} {formatDate}
-							></ChatBubble>
+							<ChatBubble {chat} currentUserId={CURRENT_USER_ID} {showAvatar} {formatDate} />
 						{/each}
 
-						<!-- Trigger action scroll di sini, no $effect react-reactan -->
+						<!-- Pesan dari WS, di-append setelahnya -->
+						{#each wsMessages as chat, index}
+							{@const prevSenderId =
+								index === 0
+									? result.chats.at(-1)?.sender_id // compare dengan pesan terakhir dari load
+									: wsMessages[index - 1].sender_id}
+							{@const showAvatar = prevSenderId !== chat.sender_id}
+							<ChatBubble {chat} currentUserId={CURRENT_USER_ID} {showAvatar} {formatDate} />
+						{/each}
 
 						<div id="chat-scroll-anchor" use:autoScroll class="h-1 w-full shrink-0"></div>
 					</div>

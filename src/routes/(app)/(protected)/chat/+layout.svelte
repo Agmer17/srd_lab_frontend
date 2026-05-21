@@ -13,6 +13,7 @@
 	import { page } from '$app/state';
 	import { initials } from '$lib/string_utils.js';
 	import { getContext } from 'svelte';
+	import { MediaQuery } from 'svelte/reactivity';
 
 	let { children, data } = $props();
 	const ws = getContext<{
@@ -23,6 +24,8 @@
 
 	let chatList = $state<LatestChatDto[]>(data.latest_chat ?? []);
 	let scrollViewport: HTMLDivElement;
+
+	let isDesktop = new MediaQuery('(min-width: 768px)');
 
 	const activeChat = $derived.by(() => {
 		const parts = page.url.pathname.split('/');

@@ -37,20 +37,33 @@
 		socket.onopen = () => {
 			wsConnected = true;
 			console.log('[WS] Connected');
+			data.joinRoom.forEach((room: String) => {
+				socket.send(
+					JSON.stringify({
+						type: 'USER_JOIN_ROOM',
+						data: {
+							room_id: room
+						}
+					})
+				);
+
+				console.log('JOINED TO ROOM : ', room);
+			});
 		};
 
 		socket.addEventListener('message', (event) => {
 			try {
 				const payload = JSON.parse(event.data);
+				console.log('new message in : ', payload);
 				if (payload.type === 'CHAT') {
 					const chatData: ChatDataDto = payload.data;
 					const isOnSameChatroom = page.url.pathname.includes(payload.data.chatroom_id);
-					if (payload.sender_id === data.user?.id) return;
+					if (chatData.sender_id === data.user?.id) return;
 					if (isOnSameChatroom) return;
 
 					toast.custom(ChatNotification, {
 						componentProps: { chat: chatData },
-						duration: 2000 // Beri waktu sedikit lama agar user bisa baca media type
+						duration: 2000
 					});
 				}
 			} catch (error) {

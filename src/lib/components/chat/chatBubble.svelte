@@ -50,8 +50,12 @@
 		});
 	}
 
-	function imgSrc(url: string): string {
+	function attachmentSource(url: string): string {
 		return `/api/chat/media/${url.split('/').pop()}`;
+	}
+
+	function documentSource(url: string): string {
+		return `/api/chat/media/${url.split('/').pop()}/download`;
 	}
 </script>
 
@@ -101,7 +105,7 @@
 						onclick={() => openLightbox(i)}
 					>
 						<img
-							src={imgSrc(media.media_access_url)}
+							src={attachmentSource(media.media_access_url)}
 							alt="Gambar {i + 1}"
 							class="{maxImgH} h-full w-full object-cover
 								transition-transform duration-200 group-hover/img:scale-105"
@@ -145,7 +149,7 @@
 					{#if media.media_type === 'video'}
 						<div class="overflow-hidden rounded-2xl {bubbleCorner} border shadow-sm">
 							<video
-								src={media.media_access_url}
+								src={attachmentSource(media.media_access_url)}
 								controls
 								class="max-h-64 w-full bg-black"
 								preload="metadata"
@@ -164,11 +168,15 @@
 							>
 								<RiMusic2Line class="h-4 w-4 text-primary" />
 							</div>
-							<audio src={media.media_access_url} controls class="h-8 min-w-0 flex-1" />
+							<audio
+								src={attachmentSource(media.media_access_url)}
+								controls
+								class="h-8 min-w-0 flex-1"
+							></audio>
 						</div>
 					{:else if media.media_type === 'document'}
 						<a
-							href={media.media_access_url}
+							href={documentSource(media.media_access_url)}
 							target="_blank"
 							rel="noopener noreferrer"
 							class="group/doc flex w-56 items-center gap-3 rounded-2xl {bubbleCorner}
@@ -182,10 +190,7 @@
 								<RiFileTextLine class="h-4 w-4 text-primary" />
 							</div>
 							<div class="flex min-w-0 flex-1 flex-col">
-								<span class="truncate text-[13px] font-medium">Dokumen Terlampir</span>
-								<Badge variant="secondary" class="mt-0.5 h-4 w-fit px-1.5 text-[10px] uppercase">
-									{media.media_access_url.split('.').pop() ?? 'file'}
-								</Badge>
+								<span class="truncate text-[13px] font-medium">Document</span>
 							</div>
 							<RiDownloadCloud2Line
 								class="h-4 w-4 shrink-0 text-muted-foreground/60

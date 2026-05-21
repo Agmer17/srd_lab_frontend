@@ -46,7 +46,9 @@
 			return;
 		}
 		inputText = '';
+		chatData.room_id = data.roomData.chatroom_id;
 		const form = postChatToForm(chatData);
+		console.log(form);
 		const res = await fetch('/api/chat/personal/send/' + data.roomData.other_user_id, {
 			method: 'POST',
 			body: form
@@ -168,7 +170,7 @@
 						<h3 class="text-lg font-medium text-foreground">Belum ada obrolan</h3>
 
 						<p class="mt-1 text-sm text-muted-foreground">
-							Kirim pesan pertama untuk memulai percakapan di grup ini.
+							Kirim pesan pertama untuk memulai percakapan disini.
 						</p>
 					</div>
 				</div>
