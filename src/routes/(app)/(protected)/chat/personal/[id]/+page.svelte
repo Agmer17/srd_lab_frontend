@@ -15,7 +15,7 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { goto } from '$app/navigation';
 	import ChatInput from '$lib/components/chat/chatInput.svelte';
-	import type { ChatDataDto, PostChatDto } from '$lib/types/chat.js';
+	import type { ChatDataDto, PersonalPostChatDto, PostChatDto } from '$lib/types/chat.js';
 	import { postChatToForm } from '$lib/chat_utils.js';
 	import type { ApiResponse } from '$lib/types/api.js';
 
@@ -153,7 +153,7 @@
 					<Alert variant="destructive" class="max-w-md shadow-sm">
 						<RiErrorWarningLine class="h-5 w-5" />
 
-						<AlertTitle>Gagal memuat obrolan</AlertTitle>
+						<AlertTitle>something wrong happen</AlertTitle>
 
 						<AlertDescription>{result.error}</AlertDescription>
 					</Alert>
@@ -167,11 +167,9 @@
 					</div>
 
 					<div>
-						<h3 class="text-lg font-medium text-foreground">Belum ada obrolan</h3>
+						<h3 class="text-lg font-medium text-foreground">No message yet</h3>
 
-						<p class="mt-1 text-sm text-muted-foreground">
-							Kirim pesan pertama untuk memulai percakapan disini.
-						</p>
+						<p class="mt-1 text-sm text-muted-foreground">be the first one to send the chat</p>
 					</div>
 				</div>
 			{:else}
@@ -204,6 +202,6 @@
 	<!-- FOOTER / INPUT: Pake shrink-0 biar ngunci di bawah gak ikut ke-scroll -->
 
 	<footer class="shrink-0 border-t bg-background p-4">
-		<ChatInput bind:value={inputText} placeholder="Ketik pesan..." onSend={handleSendMessage} />
+		<ChatInput bind:value={inputText} placeholder="type something..." onSend={handleSendMessage} />
 	</footer>
 </div>

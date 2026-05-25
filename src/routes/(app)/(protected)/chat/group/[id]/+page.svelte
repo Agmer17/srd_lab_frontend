@@ -18,7 +18,7 @@
 	import { formatDate } from '$lib/api_utils.js';
 	import { goto } from '$app/navigation';
 	import type { ApiResponse } from '$lib/types/api.js';
-	import type { ChatDataDto, PostChatDto } from '$lib/types/chat.js';
+	import type { ChatDataDto, PersonalPostChatDto, PostChatDto } from '$lib/types/chat.js';
 	import { postChatToForm } from '$lib/chat_utils.js';
 
 	let { data } = $props();
@@ -70,12 +70,14 @@
 		const socket = ws.socket;
 		if (!socket) return;
 
-		function onMessage(event: MessageEvent) {
+		async function onMessage(event: MessageEvent) {
 			try {
 				const payload = JSON.parse(event.data);
-
 				if (payload.type === 'CHAT' && payload.data.chatroom_id === data.roomData.chatroom_id) {
 					wsMessages.push(payload.data);
+					await tick();
+
+					document.getElementById('chat-scroll-anchor')?.scrollIntoView({ behavior: 'smooth' });
 				}
 			} catch (e) {
 				console.error('[WS] Parse error', e);
@@ -205,6 +207,6 @@
 	</div>
 
 	<footer class="shrink-0 border-t bg-background p-4">
-		<ChatInput bind:value={inputText} placeholder="Ketik pesan..." onSend={handleSendMessage} />
+		<ChatInput bind:value={inputText} placeholder="type something...." onSend={handleSendMessage} />
 	</footer>
 </div>

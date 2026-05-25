@@ -34,6 +34,11 @@ export interface PostChatDto {
     attachment: File[]
 }
 
+export interface PersonalPostChatDto {
+    text: string
+    attachment: File[]
+}
+
 export type FileCategory =
     | 'image'
     | 'video'

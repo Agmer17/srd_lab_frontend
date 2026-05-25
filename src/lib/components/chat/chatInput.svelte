@@ -19,7 +19,7 @@
 		RiErrorWarningLine,
 		RiCheckLine
 	} from 'remixicon-svelte';
-	import type { FileCategory, PostChatDto } from '$lib/types/chat';
+	import type { FileCategory, PersonalPostChatDto, PostChatDto } from '$lib/types/chat';
 	import { generateId } from '$lib/string_utils';
 	import { categorize, formatSize } from '$lib/chat_utils';
 

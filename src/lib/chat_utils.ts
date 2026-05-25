@@ -1,4 +1,4 @@
-import type { FileCategory, PostChatDto } from "./types/chat";
+import type { FileCategory, PersonalPostChatDto, PostChatDto } from "./types/chat";
 
 export function categorize(file: File): FileCategory {
     const mime = file.type;
@@ -20,11 +20,15 @@ export function formatSize(bytes: number): string {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
-export function postChatToForm(dto: PostChatDto): FormData {
+export function postChatToForm(dto: PostChatDto | PersonalPostChatDto): FormData {
 
     const formData = new FormData()
     formData.append("text", dto.text)
-    formData.append("room_id", dto.room_id)
+
+    if ('room_id' in dto) {
+        formData.append("room_id", dto.room_id)
+    }
+
     dto.attachment.forEach((f) => formData.append("attachment", f))
 
     return formData

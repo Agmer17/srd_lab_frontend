@@ -96,7 +96,7 @@
 	}
 </script>
 
-<div class="min-h-screen bg-background text-foreground selection:bg-primary/30">
+<div class="min-h-0 overflow-y-auto bg-background p-4 text-foreground selection:bg-primary/30">
 	<main class="relative mx-auto max-w-5xl px-6">
 		<!-- BREADCRUMB & ACTION -->
 		<Toaster richColors theme={themeData.value} position="top-right" />
