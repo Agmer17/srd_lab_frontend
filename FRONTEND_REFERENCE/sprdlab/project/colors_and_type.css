@@ -1,0 +1,303 @@
+/* ================================================================
+   SPRDlab Creative — Design Tokens
+   Source: Agmer17/srd_lab_frontend → src/routes/layout.css
+   Stack target: Tailwind v4 + shadcn-svelte (vega style, neutral base)
+
+   This file is the canonical token source for prototypes and
+   production. Light and dark themes are both defined; toggle by
+   applying `.dark` to <html> or <body>.
+   ================================================================ */
+
+/* -------- Webfonts ---------------------------------------------- */
+@import url('https://rsms.me/inter/inter.css'); /* Inter Variable */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ================================================================
+   1. PRIMITIVE / BASE TOKENS  (raw color + scale values)
+   ================================================================ */
+:root {
+  /* Brand colors — pulled straight from the production CSS vars     */
+  --sprd-yellow:   oklch(0.8606 0.1731 91.9357);   /* warm signal yellow */
+  --sprd-yellow-2: oklch(0.9300 0.1200 95.0000);
+  --sprd-navy:     oklch(0.3791 0.1378 265.5222); /* secondary deep blue */
+  --sprd-navy-2:   oklch(0.2077 0.0398 265.7549); /* dark-mode background */
+  --sprd-navy-3:   oklch(0.1288 0.0406 264.6952); /* dark-mode sidebar */
+  --sprd-blue:     oklch(0.5461 0.2152 262.8809);  /* sidebar accent / link blue */
+  --sprd-red:      oklch(0.6368 0.2078 25.3313);   /* accent red */
+  --sprd-red-dark: oklch(0.4437 0.1613 26.8994);   /* destructive light */
+  --sprd-green:    oklch(0.6959 0.1491 162.4796); /* chart-4 / paid / completed */
+  --sprd-violet:   oklch(0.6056 0.2189 292.7172); /* chart-5 */
+
+  /* Neutrals */
+  --sprd-ink:        oklch(0.2178 0 0);
+  --sprd-paper:      oklch(0.9816 0.0017 247.8390);
+  --sprd-paper-pure: oklch(1 0 0);
+  --sprd-mute-1:     oklch(0.7848 0.0559 256.1493);
+  --sprd-mute-2:     oklch(0.6050 0.0024 17.2244);
+  --sprd-mute-3:     oklch(0.3717 0.0392 257.2870);
+  --sprd-mute-4:     oklch(0.2795 0.0368 260.0310);
+  --sprd-mute-5:     oklch(0.7107 0.0351 256.7878);
+
+  /* Typography families */
+  --font-sans:    'Inter', 'Inter Variable', system-ui, -apple-system, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'SF Mono', Menlo, monospace;
+
+  /* Base type scale (Tailwind-compatible) */
+  --text-xs:   0.75rem;   /* 12px */
+  --text-sm:   0.875rem;  /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg:   1.125rem;  /* 18px */
+  --text-xl:   1.25rem;   /* 20px */
+  --text-2xl:  1.5rem;    /* 24px */
+  --text-3xl:  1.875rem;  /* 30px */
+  --text-4xl:  2.25rem;   /* 36px */
+  --text-5xl:  3rem;      /* 48px */
+  --text-6xl:  3.75rem;   /* 60px */
+
+  /* Tracking / line height */
+  --tracking-normal:  -0.01em;
+  --tracking-tight:   -0.025em;
+  --tracking-tighter: -0.05em;
+  --tracking-wide:     0.025em;
+  --tracking-widest:   0.1em;
+  --leading-tight: 1.15;
+  --leading-snug:  1.35;
+  --leading-body:  1.55;
+
+  /* Spacing primitive (Tailwind's base unit) */
+  --spacing: 0.25rem; /* 4px */
+
+  /* Radius scale */
+  --radius:     0.5rem;                        /* 8px — base */
+  --radius-sm:  calc(var(--radius) * 0.6);     /* ~5px */
+  --radius-md:  calc(var(--radius) * 0.8);     /* ~6.5px */
+  --radius-lg:  var(--radius);                 /* 8px */
+  --radius-xl:  calc(var(--radius) * 1.4);     /* ~11px */
+  --radius-2xl: calc(var(--radius) * 1.8);     /* ~14.5px */
+  --radius-3xl: calc(var(--radius) * 2.2);     /* ~17.5px */
+  --radius-4xl: calc(var(--radius) * 2.6);     /* ~20px — used for pill badges */
+}
+
+/* ================================================================
+   2. SEMANTIC TOKENS — LIGHT (default)
+   ================================================================ */
+:root {
+  --background:           oklch(0.9816 0.0017 247.8390);
+  --foreground:           oklch(0.2178 0 0);
+
+  --card:                 oklch(1 0 0);
+  --card-foreground:      oklch(0.2178 0 0);
+
+  --popover:              oklch(1 0 0);
+  --popover-foreground:   oklch(0.2178 0 0);
+
+  --primary:              oklch(0.8606 0.1731 91.9357);  /* yellow */
+  --primary-foreground:   oklch(0.3791 0.1378 265.5222); /* navy text on yellow */
+
+  --secondary:            oklch(0.3791 0.1378 265.5222); /* navy */
+  --secondary-foreground: oklch(1 0 0);
+
+  --muted:                oklch(0.7848 0.0559 256.1493);
+  --muted-foreground:     oklch(0.2290 0.0459 21.2977);
+
+  --accent:               oklch(0.6368 0.2078 25.3313);  /* red */
+  --accent-foreground:    oklch(1 0 0);
+
+  --destructive:          oklch(0.4437 0.1613 26.8994);
+  --destructive-foreground: oklch(1 0 0);
+
+  --border:               oklch(0.6050 0.0024 17.2244);
+  --input:                oklch(1 0 0);
+  --ring:                 oklch(0.3791 0.1378 265.5222);
+
+  /* Sidebar — uses navy as canvas */
+  --sidebar:              oklch(0.3791 0.1378 265.5222);
+  --sidebar-foreground:   oklch(1 0 0);
+  --sidebar-primary:      oklch(0.8606 0.1731 91.9357);
+  --sidebar-primary-foreground: oklch(0.3791 0.1378 265.5222);
+  --sidebar-accent:       oklch(0.5461 0.2152 262.8809);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border:       oklch(0.3717 0.0392 257.2870);
+  --sidebar-ring:         oklch(0.8606 0.1731 91.9357);
+
+  /* Status / chart slots */
+  --chart-1: oklch(0.3791 0.1378 265.5222); /* navy */
+  --chart-2: oklch(0.8606 0.1731 91.9357); /* yellow */
+  --chart-3: oklch(0.6368 0.2078 25.3313); /* red */
+  --chart-4: oklch(0.6959 0.1491 162.4796); /* green — used as "completed/paid" */
+  --chart-5: oklch(0.6056 0.2189 292.7172); /* violet */
+
+  /* Shadow system — 2,2 offset gives a slight diagonal "stamp" look */
+  --shadow-color: #000;
+  --shadow-opacity: 0.15;
+  --shadow-2xs: 2px 2px 4px 0px hsl(0 0% 0% / 0.07);
+  --shadow-xs:  2px 2px 4px 0px hsl(0 0% 0% / 0.07);
+  --shadow-sm:  2px 2px 4px 0px hsl(0 0% 0% / 0.15), 2px 1px 2px -1px hsl(0 0% 0% / 0.15);
+  --shadow:     2px 2px 4px 0px hsl(0 0% 0% / 0.15), 2px 1px 2px -1px hsl(0 0% 0% / 0.15);
+  --shadow-md:  2px 2px 4px 0px hsl(0 0% 0% / 0.15), 2px 2px 4px -1px hsl(0 0% 0% / 0.15);
+  --shadow-lg:  2px 2px 4px 0px hsl(0 0% 0% / 0.15), 2px 4px 6px -1px hsl(0 0% 0% / 0.15);
+  --shadow-xl:  2px 2px 4px 0px hsl(0 0% 0% / 0.15), 2px 8px 10px -1px hsl(0 0% 0% / 0.15);
+  --shadow-2xl: 2px 2px 4px 0px hsl(0 0% 0% / 0.38);
+}
+
+/* ================================================================
+   3. SEMANTIC TOKENS — DARK
+   ================================================================ */
+.dark {
+  --background:           oklch(0.2077 0.0398 265.7549);  /* deep navy paper */
+  --foreground:           oklch(0.9842 0.0034 247.8575);
+
+  --card:                 oklch(0.2795 0.0368 260.0310);
+  --card-foreground:      oklch(0.9842 0.0034 247.8575);
+
+  --popover:              oklch(0.2795 0.0368 260.0310);
+  --popover-foreground:   oklch(0.9842 0.0034 247.8575);
+
+  --primary:              oklch(0.8606 0.1731 91.9357);  /* yellow holds */
+  --primary-foreground:   oklch(0.2077 0.0398 265.7549);
+
+  --secondary:            oklch(0.5461 0.2152 262.8809); /* sky blue */
+  --secondary-foreground: oklch(1 0 0);
+
+  --muted:                oklch(0.3717 0.0392 257.2870);
+  --muted-foreground:     oklch(0.7107 0.0351 256.7878);
+
+  --accent:               oklch(0.6368 0.2078 25.3313);
+  --accent-foreground:    oklch(1 0 0);
+
+  --destructive:          oklch(0.5771 0.2152 27.3250);
+  --destructive-foreground: oklch(1 0 0);
+
+  --border:               oklch(0.3717 0.0392 257.2870);
+  --input:                oklch(0.2795 0.0368 260.0310);
+  --ring:                 oklch(0.8606 0.1731 91.9357);
+
+  --sidebar:              oklch(0.1288 0.0406 264.6952);
+  --sidebar-foreground:   oklch(0.9842 0.0034 247.8575);
+  --sidebar-primary:      oklch(0.8606 0.1731 91.9357);
+  --sidebar-primary-foreground: oklch(0.2077 0.0398 265.7549);
+  --sidebar-accent:       oklch(0.2795 0.0368 260.0310);
+  --sidebar-accent-foreground: oklch(0.8606 0.1731 91.9357);
+  --sidebar-border:       oklch(0.2795 0.0368 260.0310);
+  --sidebar-ring:         oklch(0.8606 0.1731 91.9357);
+
+  --chart-1: oklch(0.8606 0.1731 91.9357);
+  --chart-2: oklch(0.6231 0.1880 259.8145);
+  --chart-3: oklch(0.6368 0.2078 25.3313);
+  --chart-4: oklch(0.7227 0.1920 149.5793);
+  --chart-5: oklch(0.6268 0.2325 303.9004);
+
+  /* Dark shadow system uses more spread + opacity for depth */
+  --shadow-2xs: 0px 4px 10px 2px hsl(0 0% 0% / 0.25);
+  --shadow-xs:  0px 4px 10px 2px hsl(0 0% 0% / 0.25);
+  --shadow-sm:  0px 4px 10px 2px hsl(0 0% 0% / 0.50), 0px 1px 2px 1px hsl(0 0% 0% / 0.50);
+  --shadow:     0px 4px 10px 2px hsl(0 0% 0% / 0.50), 0px 1px 2px 1px hsl(0 0% 0% / 0.50);
+  --shadow-md:  0px 4px 10px 2px hsl(0 0% 0% / 0.50), 0px 2px 4px 1px hsl(0 0% 0% / 0.50);
+  --shadow-lg:  0px 4px 10px 2px hsl(0 0% 0% / 0.50), 0px 4px 6px 1px hsl(0 0% 0% / 0.50);
+  --shadow-xl:  0px 4px 10px 2px hsl(0 0% 0% / 0.50), 0px 8px 10px 1px hsl(0 0% 0% / 0.50);
+  --shadow-2xl: 0px 4px 10px 2px hsl(0 0% 0% / 1.25);
+}
+
+/* ================================================================
+   4. SEMANTIC TYPE STYLES — easy-to-apply text presets
+   ================================================================ */
+.t-display {
+  font-family: var(--font-display);
+  font-size: var(--text-5xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tighter);
+  font-weight: 700;
+  color: var(--foreground);
+}
+.t-h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  font-weight: 700;
+  color: var(--foreground);
+}
+.t-h2 {
+  font-family: var(--font-sans);
+  font-size: var(--text-3xl);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
+  font-weight: 700;
+  color: var(--foreground);
+}
+.t-h3 {
+  font-family: var(--font-sans);
+  font-size: var(--text-2xl);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-normal);
+  font-weight: 600;
+  color: var(--foreground);
+}
+.t-h4 {
+  font-family: var(--font-sans);
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-normal);
+  font-weight: 600;
+  color: var(--foreground);
+}
+.t-lead {
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-normal);
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.t-body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-normal);
+  font-weight: 400;
+  color: var(--foreground);
+}
+.t-small {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.t-caption {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  letter-spacing: var(--tracking-wide);
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+.t-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem; /* 11px */
+  line-height: 1;
+  letter-spacing: var(--tracking-widest);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.t-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: 0;
+}
+
+/* ================================================================
+   5. GLOBAL BASELINE
+   ================================================================ */
+html, body {
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  letter-spacing: var(--tracking-normal);
+  background: var(--background);
+  color: var(--foreground);
+}
+@supports (font-variation-settings: normal) {
+  html, body { font-family: 'Inter var', 'Inter Variable', 'Inter', system-ui, sans-serif; }
+}

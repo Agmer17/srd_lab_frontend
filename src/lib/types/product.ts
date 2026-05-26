@@ -8,4 +8,5 @@ export interface Product {
     is_featured: boolean; // bool -> boolean
     created_at: string;
     updated_at: string;
+    imageUrl?: string | null;
 }
