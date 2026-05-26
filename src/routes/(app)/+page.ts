@@ -8,8 +8,11 @@ export const load: PageLoad = async ({ fetch }) => {
 			const res = await fetch('/api/products');
 			const result: ApiResponse<Product[]> = await res.json();
 
-			if (!result.success || !result.data) {
-				return { products: [], error: result.error };
+			if (!result.success) {
+				return { products: [], error: String(result.error) };
+			}
+			if (!result.data) {
+				return { products: [], error: 'No data returned' };
 			}
 			
 			const featured = result.data.slice(0, 3);
