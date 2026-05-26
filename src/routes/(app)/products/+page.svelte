@@ -18,6 +18,7 @@
 	let cat = $state('all');
 	let search = $state('');
 	let selectedId = $state<string | null>(null);
+	let showAuthPopup = $state(false);
 
 	const formatPrice = (price: number) => {
 		return new Intl.NumberFormat('id-ID', {
@@ -37,8 +38,7 @@
 	const handleOrder = () => {
 		const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
 		if (!token) {
-			alert('You need to login first!');
-			goto('/login'); // We assume /login exists or will be implemented
+			showAuthPopup = true;
 			return;
 		}
 		
@@ -276,4 +276,31 @@
 			Failed to load products. Ensure the backend is running.
 		</div>
 	{/await}
+
+	<!-- Custom Auth Required Popup Modal -->
+	{#if showAuthPopup}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="fixed inset-0 bg-background/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4 transition-opacity" onclick={() => showAuthPopup = false}>
+			<div class="bg-card w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border transform transition-all duration-300 scale-100 opacity-100" onclick={e => e.stopPropagation()}>
+				<div class="p-6 text-center">
+					<div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
+						<RiShieldCheckFill class="h-8 w-8" />
+					</div>
+					<h3 class="text-xl font-bold tracking-tight mb-2">Login Required</h3>
+					<p class="text-sm text-muted-foreground mb-6">
+						You need to log in to your account before placing an order to track your transaction.
+					</p>
+					<div class="flex flex-col gap-2">
+						<button class="sprd-btn sprd-btn--primary w-full py-2.5 text-sm" onclick={() => goto('/auth')}>
+							Go to Login
+						</button>
+						<button class="sprd-btn sprd-btn--ghost w-full py-2.5 text-sm text-muted-foreground hover:text-foreground" onclick={() => showAuthPopup = false}>
+							Cancel
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
 </div>
