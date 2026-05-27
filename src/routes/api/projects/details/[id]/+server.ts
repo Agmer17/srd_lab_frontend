@@ -1,14 +1,15 @@
 import { PUBLIC_API_URL } from "$env/static/public";
 import type { RequestHandler } from "./$types";
 
-export const GET: RequestHandler = async ({ cookies, fetch }) => {
-    const accessToken = cookies.get('access_token');
-
+export const GET: RequestHandler = async ({ fetch, cookies, params }) => {
+    const accessToken = cookies.get("access_token")
+    const id = params.id
     try {
-        const res = await fetch(`${PUBLIC_API_URL}/user/get-all`, {
+
+        const res = await fetch(`${PUBLIC_API_URL}/project/details/${id}`, {
             headers: {
-                Authorization: `Bearer ${accessToken}`
-            },
+                Authorization: "Bearer " + accessToken
+            }
         })
 
         let data: any;
@@ -34,7 +35,7 @@ export const GET: RequestHandler = async ({ cookies, fetch }) => {
         return new Response(
             JSON.stringify({
                 success: true,
-                message: "successfully getting user data",
+                message: data.message,
                 data: data?.data ?? null
             }),
             {
@@ -54,6 +55,4 @@ export const GET: RequestHandler = async ({ cookies, fetch }) => {
             }
         );
     }
-
-
 }

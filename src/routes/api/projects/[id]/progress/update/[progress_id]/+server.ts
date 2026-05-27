@@ -1,17 +1,24 @@
 import { PUBLIC_API_URL } from "$env/static/public";
 import type { RequestHandler } from "./$types";
 
-export const GET: RequestHandler = async ({ cookies, fetch }) => {
-    const accessToken = cookies.get('access_token');
-
+export const PATCH: RequestHandler = async ({ cookies, fetch, request, params }) => {
+    const projectId = params.id
+    const progressId = params.progress_id
+    const accessToken = cookies.get("access_token")
+    const body = await request.json()
     try {
-        const res = await fetch(`${PUBLIC_API_URL}/user/get-all`, {
+
+
+        const res = await fetch(`${PUBLIC_API_URL}/project/${projectId}/progress/update/${progressId}`, {
+            method: "PATCH",
             headers: {
-                Authorization: `Bearer ${accessToken}`
+                Authorization: "Bearer " + accessToken
             },
+            body: JSON.stringify(body)
         })
 
         let data: any;
+
         try {
             data = await res.json();
         } catch {
@@ -34,14 +41,13 @@ export const GET: RequestHandler = async ({ cookies, fetch }) => {
         return new Response(
             JSON.stringify({
                 success: true,
-                message: "successfully getting user data",
+                message: data.message,
                 data: data?.data ?? null
             }),
             {
                 headers: { "Content-Type": "application/json" }
             }
         );
-
     } catch (error) {
         return new Response(
             JSON.stringify({
@@ -54,6 +60,4 @@ export const GET: RequestHandler = async ({ cookies, fetch }) => {
             }
         );
     }
-
-
 }

@@ -1,972 +1,737 @@
 <script lang="ts">
-	// Mengimpor Svelte runes & standard components
-	import { slide, fade } from 'svelte/transition';
-
-	import {
-		RiFolderLine,
-		RiTeamLine,
-		RiCheckboxCircleLine,
-		RiTimeLine,
-		RiFlagLine,
-		RiMore2Fill,
-		RiSearchLine,
-		RiAddLine,
-		RiHistoryLine,
-		RiArrowRightSLine,
-		RiCalendarLine,
-		RiInformationLine,
-		RiRefreshLine,
-		RiCheckDoubleLine
-	} from 'remixicon-svelte';
-
-	// Mengimpor shadcn-svelte components
-	import * as Card from '$lib/components/ui/card';
-	import * as Tabs from '$lib/components/ui/tabs';
-	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import * as Avatar from '$lib/components/ui/avatar';
-	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Progress } from '$lib/components/ui/progress';
 	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
+	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { Progress } from '$lib/components/ui/progress';
 	import { Separator } from '$lib/components/ui/separator';
-	import { Skeleton } from '$lib/components/ui/skeleton';
-	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
+	import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
+	import {
+		Dialog,
+		DialogContent,
+		DialogDescription,
+		DialogFooter,
+		DialogHeader,
+		DialogTitle,
+		DialogTrigger
+	} from '$lib/components/ui/dialog';
 
-	// ==========================================
-	// TYPE DEFINITIONS (Sesuai dengan spesifikasi)
-	// ==========================================
-	type ProjectMember = {
-		id: string;
-		project_id: string;
-		user: {
-			id: string;
-			global_role: string;
-			full_name: string;
-			email: string;
-			phone_number?: string | null;
-			profile_picture?: string | null;
-			gender?: string;
-			created_at: string;
-			updated_at: string;
-			deleted_at?: string | null;
-		};
-		role: {
-			id: string;
-			role_name: string;
-			created_at: string;
-		};
-		is_owner: boolean;
-		joined_at: string;
-		left_at?: string | null;
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Textarea } from '$lib/components/ui/textarea';
+	import { Select, SelectContent, SelectItem, SelectTrigger } from '$lib/components/ui/select';
+	import {
+		AlertDialog,
+		AlertDialogAction,
+		AlertDialogCancel,
+		AlertDialogContent,
+		AlertDialogFooter,
+		AlertDialogHeader,
+		AlertDialogTitle,
+		AlertDialogTrigger
+	} from '$lib/components/ui/alert-dialog';
+	// Remix Icons Svelte (Prefix Ri)
+	import {
+		RiTimeLine,
+		RiCheckLine,
+		RiEdit2Line,
+		RiDeleteBinLine,
+		RiRefreshLine,
+		RiCalendarEventLine,
+		RiPulseLine,
+		RiChatQuoteLine,
+		RiBarChartBoxLine,
+		RiTeamLine,
+		RiMore2Fill,
+		RiShieldUserLine
+	} from 'remixicon-svelte';
+	import type { Project, ProjectMember, ProjectProgress } from '$lib/types/projects';
+	import { formatCurrency, formatDate, parseError } from '$lib/api_utils';
+	import { initials } from '$lib/string_utils';
+	import { currentUserStore } from '$lib/state/currentUser.svelte.js';
+	import AddProjectTask from '$lib/components/projects/AddProjectTask.svelte';
+	import { Toaster } from 'svelte-sonner';
+	import { toast } from 'svelte-sonner';
+	import { themeData } from '$lib/state/theme.svelte.js';
+	import type { ApiResponse } from '$lib/types/api.js';
+	import { invalidateAll } from '$app/navigation';
+	import AddNewMemberDialog from '$lib/components/projects/AddNewMemberDialog.svelte';
+	import ProjectRolesTab from '$lib/components/projects/ProjectRolesTab.svelte';
+
+	let { data } = $props();
+
+	const project = $derived<Project | null>(data.projectDetails);
+
+	// ─── Computed ─────────────────────────────────────────────────────────────────
+	const completedWeight = $derived(
+		project?.progress?.filter((p) => p.is_completed).reduce((sum, p) => sum + p.weight, 0) ?? 0
+	);
+	const totalWeight = $derived(project?.progress?.reduce((sum, p) => sum + p.weight, 0) ?? 0);
+	const progressPercent = $derived(
+		totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0
+	);
+	const usedRevisions = $derived(project?.project_revision?.length ?? 0);
+	const remainingRevisions = $derived((project?.allowed_revision_count ?? 0) - usedRevisions);
+
+	// ─── Dialog States ────────────────────────────────────────────────────────────
+	let editProjectOpen = $state(false);
+	let addMemberOpen = $state(false);
+	let addProgressOpen = $state(false);
+	let addRevisionOpen = $state(false);
+
+	// ─── Form States ──────────────────────────────────────────────────────────────
+	let projectForm = $state({
+		name: project?.name ?? '',
+		description: project?.description ?? '',
+		status: project?.status ?? ''
+	});
+	let memberForm = $state({ name: '', email: '', role_name: 'DEVELOPER' });
+	let revisionForm = $state({ title: '', reason: '' });
+
+	const statusConfig: Record<string, { label: string; class: string }> = {
+		IN_PROGRESS: { label: 'In Progress', class: 'bg-primary/10 text-primary hover:bg-primary/20' },
+		COMPLETED: {
+			label: 'Completed',
+			class: 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20'
+		},
+		PENDING: { label: 'Pending', class: 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20' },
+		ON_HOLD: { label: 'On Hold', class: 'bg-muted text-muted-foreground hover:bg-muted/80' },
+		CANCELLED: {
+			label: 'Cancelled',
+			class: 'bg-destructive/10 text-destructive hover:bg-destructive/20'
+		},
+		IN_REVIEW: {
+			label: 'In Review',
+			class: 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+		}
 	};
+	function getStatus(key: string) {
+		return statusConfig[key] ?? statusConfig['ON_HOLD'];
+	}
 
-	type ProjectProgress = {
-		id: string;
-		project_id: string;
-		member: ProjectMember;
+	function getRole(member: ProjectMember) {
+		if (member.is_owner) {
+			return 'ADMIN';
+		} else if (member.id === project?.order?.user_id) {
+			return 'CLIENT';
+		} else {
+			return 'MEMBER';
+		}
+	}
+
+	// ─── Handlers ─────────────────────────────────────────────────────────────────
+	function saveProject() {
+		if (!project) return;
+		project.name = projectForm.name;
+		project.description = projectForm.description;
+		project.status = projectForm.status;
+		editProjectOpen = false;
+	}
+	function addMember() {
+		if (!project) return;
+		/* Omitted for brevity */ addMemberOpen = false;
+	}
+	function toggleProgress(progress: ProjectProgress) {
+		if (!project) return;
+
+		const updatedData = {
+			title: progress.title,
+			weight: progress.weight,
+			is_completed: !(progress.is_completed ?? false),
+			project_member_id: progress.member.id
+		};
+
+		const toggleProm = fetch('/api/projects/' + project.id + '/progress/update/' + progress.id, {
+			method: 'PATCH',
+			body: JSON.stringify(updatedData)
+		}).then(async (res) => {
+			const apiResponse: ApiResponse<ProjectProgress> = await res.json();
+			if (!apiResponse.success) {
+				throw new Error(parseError(apiResponse.error));
+			}
+
+			await invalidateAll();
+			return apiResponse;
+		});
+
+		toast.promise(toggleProm, {
+			loading: 'trying to update the progress state',
+			success: (result) => result.message,
+			error: (err) => {
+				if (err instanceof Error) return err.message;
+				return 'Something went wrong';
+			},
+			duration: 2000
+		});
+	}
+	function addProgress(data: {
 		title: string;
 		weight: number;
+		project_member_id: string;
 		is_completed: boolean;
-		created_at: string;
-	};
+	}) {
+		if (!project || !data) return;
 
-	type ProjectRevision = {
-		id: string;
-		project_id: string;
-		title: string;
-		reason: string;
-		status: string;
-		created_at: string;
-	};
-
-	type Project = {
-		id: string;
-		order_id: string;
-		name: string;
-		description?: string | null;
-		status: string;
-		allowed_revision_count: number;
-		project_members: ProjectMember[];
-		progress: ProjectProgress[];
-		project_revision?: ProjectRevision[];
-		actual_start_date?: string | null;
-		end_date?: string | null;
-		created_at: string;
-		updated_at: string;
-	};
-
-	// ==========================================
-	// MOCK DATA (Realistic Production-Ready)
-	// ==========================================
-	const mockMembers: ProjectMember[] = [
-		{
-			id: 'pm-1',
-			project_id: 'prj-101',
-			user: {
-				id: 'u-1',
-				global_role: 'admin',
-				full_name: 'Firdaus Hanafiah',
-				email: 'firdaus@saascorp.com',
-				profile_picture: null,
-				created_at: '2025-01-10',
-				updated_at: '2025-01-10'
-			},
-			role: { id: 'r-1', role_name: 'Product Manager', created_at: '2025-01-10' },
-			is_owner: true,
-			joined_at: '2026-01-12'
-		},
-		{
-			id: 'pm-2',
-			project_id: 'prj-101',
-			user: {
-				id: 'u-2',
-				global_role: 'member',
-				full_name: 'Sarah Amalia',
-				email: 'sarah.a@saascorp.com',
-				profile_picture: null,
-				created_at: '2025-02-14',
-				updated_at: '2025-02-14'
-			},
-			role: { id: 'r-2', role_name: 'Lead UI/UX Designer', created_at: '2025-02-14' },
-			is_owner: false,
-			joined_at: '2026-01-14'
-		},
-		{
-			id: 'pm-3',
-			project_id: 'prj-101',
-			user: {
-				id: 'u-3',
-				global_role: 'member',
-				full_name: 'Rian Dimas',
-				email: 'rian.d@saascorp.com',
-				profile_picture: null,
-				created_at: '2025-03-01',
-				updated_at: '2025-03-01'
-			},
-			role: { id: 'r-3', role_name: 'Senior Frontend Engineer', created_at: '2025-03-01' },
-			is_owner: false,
-			joined_at: '2026-01-15'
-		}
-	];
-
-	const initialProject: Project = {
-		id: 'prj-101',
-		order_id: 'ORD-2026-8891',
-		name: 'Next-Gen Core Platform Architecture v2',
-		description:
-			'Inisiatif rekonstruksi infrastruktur modular dan desain sistem antarmuka berbasis micro-frontend untuk meningkatkan reliabilitas transaksi inti platform SaaS hingga 40%.',
-		status: 'In Progress',
-		allowed_revision_count: 5,
-		project_members: mockMembers,
-		progress: [
-			{
-				id: 'prog-1',
-				project_id: 'prj-101',
-				member: mockMembers[0],
-				title: 'Penyusunan High-Level Architecture Design & Node Cluster Mapping',
-				weight: 25,
-				is_completed: true,
-				created_at: '2026-02-01 09:00'
-			},
-			{
-				id: 'prog-2',
-				project_id: 'prj-101',
-				member: mockMembers[1],
-				title: 'Finalisasi Komponen Tokenisasi Sistem Desain pada Figma Enterprise',
-				weight: 20,
-				is_completed: true,
-				created_at: '2026-02-10 14:20'
-			},
-			{
-				id: 'prog-3',
-				project_id: 'prj-101',
-				member: mockMembers[2],
-				title: 'Migrasi State Management Svelte 4 Legacy ke Svelte 5 Runes',
-				weight: 30,
-				is_completed: false,
-				created_at: '2026-02-18 11:00'
-			},
-			{
-				id: 'prog-4',
-				project_id: 'prj-101',
-				member: mockMembers[2],
-				title: 'Integrasi End-to-End Testing (E2E) via Playwright Engine',
-				weight: 25,
-				is_completed: false,
-				created_at: '2026-02-22 16:45'
+		const prom = fetch('/api/projects/' + project.id + '/progress', {
+			method: 'POST',
+			body: JSON.stringify(data),
+			headers: {
+				'Content-Type': 'application/json'
 			}
-		],
-		project_revision: [
-			{
-				id: 'rev-1',
-				project_id: 'prj-101',
-				title: 'Penyesuaian Skema Payload Webhook Gateway',
-				reason:
-					'Perubahan mendadak spesifikasi integrasi API pihak ketiga pada modul enkripsi data.',
-				status: 'Approved',
-				created_at: '2026-02-14 10:00'
+		}).then(async (res) => {
+			const apiResponse: ApiResponse<ProjectProgress> = await res.json();
+			if (!apiResponse.success) {
+				throw new Error(parseError(apiResponse.error));
+			}
+
+			await invalidateAll();
+			return apiResponse;
+		});
+		addProgressOpen = false;
+
+		toast.promise(prom, {
+			loading: 'trying to add new progress..',
+			success: (result) => result.message,
+			error: (err) => {
+				if (err instanceof Error) return err.message;
+				return 'Something went wrong';
 			},
-			{
-				id: 'rev-2',
-				project_id: 'prj-101',
-				title: 'Optimasi Latensi Query Audit Trail Log',
-				reason:
-					'Hasil stress test menunjukkan bottleneck masif saat concurrent users menyentuh batas 15k.',
-				status: 'Under Review',
-				created_at: '2026-02-24 08:15'
-			}
-		],
-		actual_start_date: '2026-01-20',
-		end_date: '2026-06-30',
-		created_at: '2026-01-12',
-		updated_at: '2026-02-24'
-	};
-
-	// ==========================================
-	// APP STATE (Svelte 5 Runes)
-	// ==========================================
-	let project = $state<Project>(initialProject);
-	let isLoading = $state<boolean>(false);
-	let searchQuery = $state<string>('');
-	let currentTab = $state<string>('tasks');
-	let filterStatus = $state<string>('all'); // all, completed, active
-
-	// ==========================================
-	// COMPUTED / DERIVED DATA
-	// ==========================================
-	const totalTasks = $derived(project.progress.length);
-	const completedTasks = $derived(project.progress.filter((t) => t.is_completed).length);
-
-	const totalWeightCalculated = $derived(
-		project.progress.reduce((sum, item) => sum + item.weight, 0)
-	);
-	const completedWeightSum = $derived(
-		project.progress.filter((t) => t.is_completed).reduce((sum, item) => sum + item.weight, 0)
-	);
-
-	// Persentase kemajuan riil berbobot (weighted progress)
-	const actualProgressPercentage = $derived(
-		totalWeightCalculated > 0 ? Math.round((completedWeightSum / totalWeightCalculated) * 100) : 0
-	);
-
-	const activeMembersCount = $derived(project.project_members.length);
-	const remainingRevisions = $derived(
-		project.allowed_revision_count - (project.project_revision?.length || 0)
-	);
-
-	const filteredProgressList = $derived(
-		project.progress.filter((item) => {
-			const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
-			if (filterStatus === 'completed') return matchesSearch && item.is_completed;
-			if (filterStatus === 'active') return matchesSearch && !item.is_completed;
-			return matchesSearch;
-		})
-	);
-
-	// ==========================================
-	// MUTATION HANDLERS
-	// ==========================================
-	function toggleTaskStatus(id: string) {
-		project.progress = project.progress.map((task) => {
-			if (task.id === id) {
-				return { ...task, is_completed: !task.is_completed };
-			}
-			return task;
+			duration: 2000
 		});
 	}
 
-	function simulateReload() {
-		isLoading = true;
-		setTimeout(() => {
-			isLoading = false;
-		}, 1200);
+	function deleteProgress(id: string) {
+		if (!project) return;
+
+		const delProm = fetch('/api/projects/' + project.id + '/progress/delete/' + id, {
+			method: 'DELETE'
+		}).then(async (res) => {
+			const apiResponse: ApiResponse<string> = await res.json();
+			if (!apiResponse.success) {
+				throw new Error(parseError(apiResponse.error));
+			}
+
+			await invalidateAll();
+			return apiResponse;
+		});
+
+		toast.promise(delProm, {
+			loading: 'trying to delete progress...',
+			success: (result) => result.message,
+			error: (err) => {
+				if (err instanceof Error) return err.message;
+				return 'Something went wrong';
+			},
+			duration: 2000
+		});
 	}
 
-	// Mengambil inisial nama untuk avatar fallback
-	function getInitials(name: string): string {
-		return name
-			.split(' ')
-			.map((n) => n[0])
-			.join('')
-			.toUpperCase()
-			.slice(0, 2);
+	function addRevision() {
+		if (!project) return;
+		const newRev: any = {
+			// Typed as any or ProjectRevision depending on your imports
+			id: crypto.randomUUID(),
+			project_id: project.id,
+			title: revisionForm.title,
+			reason: revisionForm.reason,
+			status: 'PENDING',
+			created_at: new Date().toISOString()
+		};
+		project.project_revision = [...(project.project_revision ?? []), newRev];
+		revisionForm = { title: '', reason: '' };
+		addRevisionOpen = false;
 	}
+
+	function isCurrentOwner(id: string | undefined) {
+		if (!id) {
+			return false;
+		}
+		return (
+			project?.project_members?.some((member) => member.user.id === id && member.is_owner) ?? false
+		);
+	}
+
+	async function handlePostInvite(userId: string, roleId: string) {}
+
+	// async function handleUpdateMember(member: ProjectMember) {}
+
+	async function handleDeleteMember(member: ProjectMember) {}
+
+	const isOwner = $state<boolean>(isCurrentOwner(currentUserStore.data?.id));
 </script>
 
-<div
-	class="min-h-0 overflow-y-auto bg-background text-foreground antialiased transition-colors duration-200"
->
-	<!-- Top Navigation / Breadcrumb Header Bar -->
-	<header
-		class="sticky top-0 z-40 border-b border-border bg-background/80 px-6 py-4 backdrop-blur-md"
-	>
-		<div class="mx-auto flex max-w-7xl items-center justify-between">
-			<div class="flex items-center gap-4">
-				<Breadcrumb.Root>
-					<Breadcrumb.List class="text-xs font-medium tracking-tight">
-						<Breadcrumb.Item>
-							<Breadcrumb.Link href="/projects" class="transition-colors hover:text-foreground">
-								Projects
-							</Breadcrumb.Link>
-						</Breadcrumb.Item>
-						<Breadcrumb.Separator>
-							<RiArrowRightSLine class="size-3.5 text-muted-foreground" />
-						</Breadcrumb.Separator>
-						<Breadcrumb.Item>
-							<Breadcrumb.Link
-								href="/projects/core"
-								class="transition-colors hover:text-foreground"
-							>
-								Core Engineering
-							</Breadcrumb.Link>
-						</Breadcrumb.Item>
-						<Breadcrumb.Separator>
-							<RiArrowRightSLine class="size-3.5 text-muted-foreground" />
-						</Breadcrumb.Separator>
-						<Breadcrumb.Item>
-							<Breadcrumb.Page class="font-semibold text-foreground">
-								{project.order_id}
-							</Breadcrumb.Page>
-						</Breadcrumb.Item>
-					</Breadcrumb.List>
-				</Breadcrumb.Root>
-			</div>
+<div class="min-h-0 overflow-y-auto bg-background pb-12 font-sans text-foreground">
+	<Toaster richColors theme={themeData.value} position="top-right" />
 
-			<div class="flex items-center gap-2">
-				<Button
-					variant="outline"
-					size="sm"
-					onclick={simulateReload}
-					disabled={isLoading}
-					class="h-8 rounded-lg border-border bg-card px-3 text-xs font-medium hover:bg-muted"
-				>
-					<RiRefreshLine class="mr-1.5 size-3.5 animate-none" />
-					Sync Data
-				</Button>
-				<DropdownMenu.Root>
-					<DropdownMenu.Trigger>
-						<Button
-							variant="outline"
-							size="icon"
-							class="h-8 w-8 rounded-lg border-border bg-card hover:bg-muted"
-						>
-							<RiMore2Fill class="size-4" />
-						</Button>
-					</DropdownMenu.Trigger>
-					<DropdownMenu.Content
-						align="end"
-						class="w-48 rounded-xl border-border bg-popover p-1 shadow-md"
-					>
-						<DropdownMenu.Item class="rounded-lg text-xs hover:bg-muted"
-							>Edit Metadata</DropdownMenu.Item
-						>
-						<DropdownMenu.Item class="rounded-lg text-xs hover:bg-muted"
-							>Configure Webhooks</DropdownMenu.Item
-						>
-						<Separator class="my-1 bg-border" />
-						<DropdownMenu.Item class="rounded-lg text-xs text-destructive hover:bg-destructive/10"
-							>Archive Project</DropdownMenu.Item
-						>
-					</DropdownMenu.Content>
-				</DropdownMenu.Root>
-			</div>
-		</div>
-	</header>
+	{#if project}
+		<header class="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-sm">
+			<div class="mx-auto max-w-7xl px-6 py-5">
+				<div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+					<div class="flex items-center gap-4">
+						<h1 class="text-2xl font-bold tracking-tight">{project.name}</h1>
+						<Badge variant="secondary" class={getStatus(project.status).class}>
+							{getStatus(project.status).label}
+						</Badge>
+					</div>
 
-	<main class="mx-auto max-w-7xl p-6 md:p-8">
-		{#if isLoading}
-			<!-- SKELETON LOADING STATE -->
-			<div class="space-y-8" transition:fade={{ duration: 150 }}>
-				<div class="space-y-3">
-					<div class="flex items-center gap-3">
-						<Skeleton class="h-6 w-24 rounded-md" />
-						<Skeleton class="h-6 w-32 rounded-md" />
-					</div>
-					<Skeleton class="h-10 w-2/3 rounded-xl" />
-					<Skeleton class="h-16 w-full rounded-xl" />
-				</div>
-				<div class="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-					{#each Array(5) as _}
-						<Skeleton class="h-24 rounded-2xl" />
-					{/each}
-				</div>
-				<div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
-					<div class="lg:col-span-2">
-						<Skeleton class="h-96 rounded-2xl" />
-					</div>
-					<div>
-						<Skeleton class="h-80 rounded-2xl" />
-					</div>
+					<Dialog bind:open={editProjectOpen}>
+						<DialogTrigger>
+							{#snippet child({ props })}
+								<Button {...props} variant="outline" size="sm" class="gap-1.5 shadow-sm">
+									<RiEdit2Line class="h-4 w-4" /> Edit Project
+								</Button>
+							{/snippet}
+						</DialogTrigger>
+						<DialogContent class="sm:max-w-lg">
+							<DialogHeader>
+								<DialogTitle>Edit Project</DialogTitle>
+								<DialogDescription>Update project details and status.</DialogDescription>
+							</DialogHeader>
+							<div class="space-y-4 py-2">
+								<div class="space-y-1.5">
+									<Label>Project Name</Label><Input bind:value={projectForm.name} />
+								</div>
+								<div class="space-y-1.5">
+									<Label>Description</Label><Textarea
+										bind:value={projectForm.description}
+										rows={3}
+									/>
+								</div>
+								<div class="space-y-1.5">
+									<Label>Status</Label>
+									<Select bind:value={projectForm.status} type="single">
+										<SelectTrigger>
+											{#if projectForm.status}
+												{getStatus(projectForm.status).label}
+											{:else}
+												Select status
+											{/if}
+										</SelectTrigger>
+										<SelectContent>
+											{#each Object.keys(statusConfig) as s}
+												<SelectItem value={s}>{getStatus(s).label}</SelectItem>
+											{/each}
+										</SelectContent>
+									</Select>
+								</div>
+							</div>
+							<DialogFooter>
+								<Button variant="ghost" onclick={() => (editProjectOpen = false)}>Cancel</Button>
+								<Button onclick={saveProject}>Save Changes</Button>
+							</DialogFooter>
+						</DialogContent>
+					</Dialog>
 				</div>
 			</div>
-		{:else}
-			<div class="space-y-8" transition:fade={{ duration: 200 }}>
-				<!-- PROJECT HEADER SECTION -->
-				<section class="space-y-4">
-					<div class="flex flex-wrap items-start justify-between gap-4">
-						<div class="max-w-3xl space-y-2">
-							<div class="flex flex-wrap items-center gap-2">
-								<Badge
-									variant="secondary"
-									class="rounded-md bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground shadow-2xs"
+		</header>
+
+		<main class="mx-auto max-w-7xl px-6 py-8">
+			<div class="grid grid-cols-1 gap-10 lg:grid-cols-3">
+				<div class="space-y-6 lg:col-span-2">
+					<Tabs value="tasks" class="w-full">
+						<TabsList
+							class="inline-flex h-auto w-full gap-1 rounded-2xl border border-border bg-muted/40 p-1.5"
+						>
+							{#each [{ value: 'tasks', label: 'Tasks & Progress', icon: RiBarChartBoxLine }, { value: 'revisions', label: 'Client Revisions', icon: RiChatQuoteLine }, { value: 'members', label: 'Team Members', icon: RiTeamLine }, { value: 'roles', label: 'Roles & Permissions', icon: RiShieldUserLine }] as tab}
+								{@const Icon = tab.icon}
+
+								<TabsTrigger
+									value={tab.value}
+									class="flex-1 rounded-xl border border-transparent px-4 py-3 text-sm font-medium text-muted-foreground transition-all duration-200 data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
 								>
-									<RiFolderLine class="mr-1 size-3" />
-									Core Engineering
-								</Badge>
-								<Badge
-									class="rounded-md bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground shadow-2xs"
+									<div class="flex items-center justify-center gap-2">
+										<Icon class="h-4 w-4" />
+										<span class="hidden sm:inline">
+											{tab.label}
+										</span>
+									</div>
+								</TabsTrigger>
+							{/each}
+						</TabsList>
+
+						<TabsContent value="tasks" class="pt-6 outline-none">
+							<div class="mb-6 flex items-center justify-between">
+								<h2 class="text-lg font-semibold">Development Timeline</h2>
+								<!-- add task dialog -->
+								<AddProjectTask isowner={isOwner} bind:addProgressOpen {project} onAdd={addProgress}
+								></AddProjectTask>
+							</div>
+
+							{#if project.progress.length === 0}
+								<div
+									class="rounded-lg border border-dashed border-border py-12 text-center text-muted-foreground"
 								>
-									{project.status}
-								</Badge>
-								<span class="font-mono text-xs text-muted-foreground">Updated 2h ago</span>
-							</div>
-							<h1 class="text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-								{project.name}
-							</h1>
-							<p class="text-sm leading-relaxed text-muted-foreground">
-								{project.description}
-							</p>
-						</div>
-
-						<!-- Quick Target Metric Ring-like Card -->
-						<div
-							class="flex min-w-[200px] items-center gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm"
-						>
-							<div class="w-full space-y-2">
-								<div class="flex items-center justify-between text-xs font-semibold">
-									<span class="text-muted-foreground">Completion Index</span>
-									<span class="font-mono text-foreground">{actualProgressPercentage}%</span>
+									No tasks available. Start by adding a task.
 								</div>
-								<Progress
-									value={actualProgressPercentage}
-									class="h-2 bg-muted [&>div]:bg-primary"
-								/>
-								<div class="flex justify-between font-mono text-[11px] text-muted-foreground">
-									<span>{completedTasks} of {totalTasks} milestones</span>
-									<span>{completedWeightSum}/{totalWeightCalculated} Wt</span>
-								</div>
-							</div>
-						</div>
-					</div>
-				</section>
+							{:else}
+								<div class="relative pl-3">
+									{#each project.progress as task, i (task.id)}
+										<div class="group relative pb-8 last:pb-0">
+											{#if i !== project.progress.length - 1}
+												<div
+													class="absolute top-7 bottom-[-7px] left-[11px] w-px bg-border transition-colors group-hover:bg-muted-foreground/30"
+												></div>
+											{/if}
 
-				<!-- PROJECT STATISTICS SECTION -->
-				<section class="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-					<!-- Stat 1 -->
-					<Card.Root
-						class="overflow-hidden rounded-2xl border-border bg-card shadow-xs transition-all duration-200 hover:shadow-md"
-					>
-						<Card.Header class="p-4 pb-2">
-							<Card.Description
-								class="flex items-center justify-between text-xs font-medium text-muted-foreground"
-							>
-								Total Targets
-								<RiCheckDoubleLine class="size-4 text-muted-foreground opacity-70" />
-							</Card.Description>
-						</Card.Header>
-						<Card.Content class="p-4 pt-0">
-							<div class="font-mono text-2xl font-bold tracking-tight text-foreground">
-								{totalTasks}
-							</div>
-							<p class="mt-0.5 text-[11px] text-muted-foreground">Grand milestones allocated</p>
-						</Card.Content>
-					</Card.Root>
+											<div class="flex items-start gap-4">
+												<button
+													onclick={() => toggleProgress(task)}
+													class="relative z-10 mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 bg-background transition-colors
+								   {task.is_completed
+														? 'border-primary bg-primary text-primary-foreground'
+														: 'border-muted-foreground hover:border-primary'}"
+												>
+													{#if task.is_completed}
+														<RiCheckLine class="h-3.5 w-3.5" />
+													{/if}
+												</button>
 
-					<!-- Stat 2 -->
-					<Card.Root
-						class="overflow-hidden rounded-2xl border-border bg-card shadow-xs transition-all duration-200 hover:shadow-md"
-					>
-						<Card.Header class="p-4 pb-2">
-							<Card.Description
-								class="flex items-center justify-between text-xs font-medium text-muted-foreground"
-							>
-								Completed
-								<RiCheckboxCircleLine class="size-4 text-muted-foreground opacity-70" />
-							</Card.Description>
-						</Card.Header>
-						<Card.Content class="p-4 pt-0">
-							<div class="font-mono text-2xl font-bold tracking-tight text-foreground">
-								{completedTasks}
-							</div>
-							<p class="mt-0.5 text-[11px] text-muted-foreground">Successfully validated</p>
-						</Card.Content>
-					</Card.Root>
-
-					<!-- Stat 3 -->
-					<Card.Root
-						class="overflow-hidden rounded-2xl border-border bg-card shadow-xs transition-all duration-200 hover:shadow-md"
-					>
-						<Card.Header class="p-4 pb-2">
-							<Card.Description
-								class="flex items-center justify-between text-xs font-medium text-muted-foreground"
-							>
-								Active Squad
-								<RiTeamLine class="size-4 text-muted-foreground opacity-70" />
-							</Card.Description>
-						</Card.Header>
-						<Card.Content class="p-4 pt-0">
-							<div class="font-mono text-2xl font-bold tracking-tight text-foreground">
-								{activeMembersCount}
-							</div>
-							<p class="mt-0.5 text-[11px] text-muted-foreground">Engineers & Core Leads</p>
-						</Card.Content>
-					</Card.Root>
-
-					<!-- Stat 4 -->
-					<Card.Root
-						class="overflow-hidden rounded-2xl border-border bg-card shadow-xs transition-all duration-200 hover:shadow-md"
-					>
-						<Card.Header class="p-4 pb-2">
-							<Card.Description
-								class="flex items-center justify-between text-xs font-medium text-muted-foreground"
-							>
-								Revisions Left
-								<RiHistoryLine class="size-4 text-muted-foreground opacity-70" />
-							</Card.Description>
-						</Card.Header>
-						<Card.Content class="p-4 pt-0">
-							<div class="font-mono text-2xl font-bold tracking-tight text-foreground">
-								{remainingRevisions}
-							</div>
-							<p class="mt-0.5 text-[11px] text-muted-foreground">
-								From {project.allowed_revision_count} allocation unit
-							</p>
-						</Card.Content>
-					</Card.Root>
-
-					<!-- Stat 5 -->
-					<Card.Root
-						class="col-span-2 overflow-hidden rounded-2xl border-border bg-card shadow-xs transition-all duration-200 hover:shadow-md lg:col-span-1"
-					>
-						<Card.Header class="p-4 pb-2">
-							<Card.Description
-								class="flex items-center justify-between text-xs font-medium text-muted-foreground"
-							>
-								Productive Power
-								<RiFlagLine class="size-4 text-muted-foreground opacity-70" />
-							</Card.Description>
-						</Card.Header>
-						<Card.Content class="p-4 pt-0">
-							<div class="font-mono text-2xl font-bold tracking-tight text-foreground">
-								{actualProgressPercentage}%
-							</div>
-							<p class="mt-0.5 text-[11px] text-muted-foreground">Weighted metric indices</p>
-						</Card.Content>
-					</Card.Root>
-				</section>
-
-				<!-- LAYOUT COMBINATION WORKSPACE -->
-				<div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
-					<!-- LEFT / MAIN WORKSPACE AREA (2/3 Grid) -->
-					<div class="space-y-6 lg:col-span-2">
-						<Tabs.Root
-							value={currentTab}
-							onValueChange={(val) => (currentTab = val)}
-							class="w-full space-y-4"
-						>
-							<div class="flex items-center justify-between border-b border-border pb-1">
-								<Tabs.List class="h-10 gap-2 bg-transparent p-0">
-									<Tabs.Trigger
-										value="tasks"
-										class="rounded-none border-b-2 border-transparent px-4 pt-2 pb-2 text-sm font-medium text-muted-foreground shadow-none transition-all hover:text-foreground data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-foreground"
-									>
-										Milestones & Tasks
-									</Tabs.Trigger>
-									<Tabs.Trigger
-										value="members"
-										class="rounded-none border-b-2 border-transparent px-4 pt-2 pb-2 text-sm font-medium text-muted-foreground shadow-none transition-all hover:text-foreground data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-foreground"
-									>
-										Team Engineers
-									</Tabs.Trigger>
-									<Tabs.Trigger
-										value="revisions"
-										class="rounded-none border-b-2 border-transparent px-4 pt-2 pb-2 text-sm font-medium text-muted-foreground shadow-none transition-all hover:text-foreground data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-foreground"
-									>
-										Audit Revisions
-									</Tabs.Trigger>
-								</Tabs.List>
-							</div>
-
-							<!-- TAB 1: PROGRESS / TASKS SECTION -->
-							<Tabs.Content value="tasks" class="space-y-4 outline-none">
-								<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-									<div class="relative flex-1">
-										<RiSearchLine
-											class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-										/>
-										<Input
-											type="text"
-											placeholder="Filter core milestones..."
-											bind:value={searchQuery}
-											class="h-9 rounded-xl border-border bg-card pl-9 text-xs ring-offset-background placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-ring"
-										/>
-									</div>
-									<div class="flex items-center gap-2">
-										<Button
-											variant={filterStatus === 'all' ? 'secondary' : 'outline'}
-											size="sm"
-											onclick={() => (filterStatus = 'all')}
-											class="h-8 rounded-lg text-xs"
-										>
-											All
-										</Button>
-										<Button
-											variant={filterStatus === 'active' ? 'secondary' : 'outline'}
-											size="sm"
-											onclick={() => (filterStatus = 'active')}
-											class="h-8 rounded-lg text-xs"
-										>
-											Active
-										</Button>
-										<Button
-											variant={filterStatus === 'completed' ? 'secondary' : 'outline'}
-											size="sm"
-											onclick={() => (filterStatus = 'completed')}
-											class="h-8 rounded-lg text-xs"
-										>
-											Done
-										</Button>
-									</div>
-								</div>
-
-								<!-- Task List UI Container -->
-								<div class="space-y-2.5">
-									{#if filteredProgressList.length === 0}
-										<!-- EMPTY STATE MODERN -->
-										<div
-											class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/40 p-12 text-center"
-											transition:slide
-										>
-											<div class="mb-4 rounded-2xl bg-muted p-4 text-muted-foreground shadow-2xs">
-												<RiInformationLine class="size-6" />
-											</div>
-											<h3 class="text-sm font-semibold text-foreground">
-												No core milestones discovered
-											</h3>
-											<p class="mt-1 max-w-xs text-xs leading-normal text-muted-foreground">
-												Tidak ada entitas data progress yang cocok dengan kata kunci pencarian atau
-												filter aktif Anda.
-											</p>
-											<Button
-												size="sm"
-												variant="outline"
-												class="mt-4 h-8 rounded-lg border-border bg-card text-xs"
-												onclick={() => {
-													searchQuery = '';
-													filterStatus = 'all';
-												}}
-											>
-												Reset Filter Criteria
-											</Button>
-										</div>
-									{:else}
-										{#each filteredProgressList as task (task.id)}
-											<div
-												class="group flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:border-muted-foreground/30 hover:shadow-xs"
-												transition:slide={{ duration: 150 }}
-											>
-												<div class="flex flex-1 items-start gap-3.5">
-													<button
-														onclick={() => toggleTaskStatus(task.id)}
-														class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border border-border text-primary-foreground transition-all duration-150 focus:ring-2 focus:ring-ring focus:outline-none {task.is_completed
-															? 'border-primary bg-primary text-primary-foreground'
-															: 'bg-background hover:border-muted-foreground'}"
-														aria-label="Toggle task completeness status"
+												<div
+													class="flex-1 rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md"
+												>
+													<div
+														class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"
 													>
-														{#if task.is_completed}
-															<svg
-																class="size-3.5 stroke-[3]"
-																fill="none"
-																viewBox="0 0 24 24"
-																stroke="currentColor"
+														<div>
+															<h3
+																class={`text-sm font-medium ${task.is_completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}
 															>
-																<path
-																	stroke-linecap="round"
-																	stroke-linejoin="round"
-																	d="M5 13l4 4L19 7"
-																/>
-															</svg>
-														{/if}
-													</button>
-
-													<div class="flex-1 space-y-1.5">
-														<span
-															class="block text-xs leading-relaxed font-medium transition-all {task.is_completed
-																? 'text-muted-foreground line-through opacity-70'
-																: 'font-semibold text-foreground'}"
-														>
-															{task.title}
-														</span>
-
-														<!-- Metadata Row inside Task Item -->
-														<div
-															class="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-muted-foreground"
-														>
-															<span class="flex items-center gap-1 font-sans">
-																<Avatar.Root class="size-4 border border-border">
-																	<Avatar.Fallback
-																		class="bg-secondary text-[8px] font-bold text-secondary-foreground"
-																		>{getInitials(task.member.user.full_name)}</Avatar.Fallback
+																{task.title}
+															</h3>
+															<div class="mt-3 flex items-center gap-3">
+																<div class="flex items-center gap-1.5">
+																	<Avatar class="h-5 w-5">
+																		<AvatarImage
+																			src={task.member.user.profile_picture}
+																			referrerpolicy="no-referrer"
+																		></AvatarImage>
+																		<AvatarFallback class="bg-muted text-[9px]"
+																			>{initials(task.member.user.full_name)}</AvatarFallback
+																		>
+																	</Avatar>
+																	<span class="text-xs text-muted-foreground"
+																		>{task.member.user.full_name}</span
 																	>
-																</Avatar.Root>
-																{task.member.user.full_name}
-															</span>
-															<span>•</span>
-															<span
-																class="rounded bg-muted px-1.5 py-0.5 font-semibold text-foreground"
-																>Weight: {task.weight}%</span
-															>
-															<span>•</span>
-															<span>Registered {task.created_at}</span>
-														</div>
-													</div>
-												</div>
-
-												<div class="flex items-center">
-													<Badge
-														variant="outline"
-														class="rounded-md border-border bg-background px-2 py-0.5 font-mono text-[10px] uppercase {task.is_completed
-															? 'text-muted-foreground'
-															: 'font-semibold text-primary'}"
-													>
-														{task.is_completed ? 'Resolved' : 'Active'}
-													</Badge>
-												</div>
-											</div>
-										{/each}
-									{/if}
-								</div>
-							</Tabs.Content>
-
-							<!-- TAB 2: TEAM MEMBERS SECTION -->
-							<Tabs.Content value="members" class="outline-none">
-								<Card.Root class="rounded-2xl border-border bg-card shadow-xs">
-									<Card.Header class="p-6 pb-4">
-										<Card.Title class="text-base font-bold text-foreground"
-											>Active Operational Squad</Card.Title
-										>
-										<Card.Description class="text-xs text-muted-foreground"
-											>Roster insinyur terpilih yang dialokasikan penuh ke kluster repositori ini.</Card.Description
-										>
-									</Card.Header>
-									<Card.Content class="space-y-4 p-6 pt-0">
-										{#each project.project_members as member (member.id)}
-											<div
-												class="flex items-center justify-between gap-4 rounded-xl border border-border bg-background/50 p-3.5 transition-all hover:bg-muted/30"
-											>
-												<div class="flex items-center gap-3">
-													<Avatar.Root
-														class="size-10 border border-border shadow-xs ring-2 ring-background"
-													>
-														<Avatar.Fallback
-															class="bg-secondary text-sm font-bold text-secondary-foreground"
-															>{getInitials(member.user.full_name)}</Avatar.Fallback
-														>
-													</Avatar.Root>
-													<div class="space-y-0.5">
-														<div class="flex items-center gap-2">
-															<span class="text-xs font-bold text-foreground"
-																>{member.user.full_name}</span
-															>
-															{#if member.is_owner}
-																<Badge
-																	class="py-0.2 rounded border border-accent/30 bg-accent/20 px-1.5 text-[9px] font-bold tracking-wider text-accent uppercase"
+																</div>
+																<span class="text-xs text-muted-foreground">•</span>
+																<span class="text-xs text-muted-foreground"
+																	>{formatDate(task.created_at)}</span
 																>
-																	Owner
-																</Badge>
-															{/if}
+															</div>
 														</div>
-														<p class="font-mono text-[11px] text-muted-foreground">
-															{member.user.email} — {member.role.role_name}
-														</p>
-													</div>
-												</div>
-												<div class="text-right font-mono text-[11px] text-muted-foreground">
-													<p>Joined Squad</p>
-													<p class="font-medium text-foreground">{member.joined_at}</p>
-												</div>
-											</div>
-										{/each}
-									</Card.Content>
-								</Card.Root>
-							</Tabs.Content>
 
-							<!-- TAB 3: REVISION SECTION (Timeline Style) -->
-							<Tabs.Content value="revisions" class="outline-none">
-								<Card.Root class="rounded-2xl border-border bg-card shadow-xs">
-									<Card.Header class="p-6 pb-4">
-										<Card.Title class="text-base font-bold text-foreground"
-											>Project Change Logs & Revisions</Card.Title
-										>
-										<Card.Description class="text-xs text-muted-foreground"
-											>Manajemen kontrol revisi arsitektur pasca-tinjau komite.</Card.Description
-										>
-									</Card.Header>
-									<Card.Content class="p-6 pt-0">
-										{#if !project.project_revision || project.project_revision.length === 0}
-											<div class="py-8 text-center text-xs text-muted-foreground">
-												Tidak ada riwayat revisi terdaftar.
-											</div>
-										{:else}
-											<div
-												class="relative space-y-6 pl-6 before:absolute before:top-2 before:bottom-2 before:left-2 before:w-[1px] before:bg-border"
-											>
-												{#each project.project_revision as rev (rev.id)}
-													<div class="relative space-y-2">
-														<!-- Timeline dot indicator -->
-														<div
-															class="absolute top-1.5 -left-[21.5px] size-2 rounded-full border border-border bg-background ring-4 ring-background group-hover:bg-primary"
-														></div>
-
-														<div class="flex flex-wrap items-center justify-between gap-2">
-															<h4 class="text-xs leading-snug font-bold text-foreground">
-																{rev.title}
-															</h4>
+														<div class="flex shrink-0 items-center gap-3">
 															<Badge
 																variant="outline"
-																class="py-0.2 rounded border-border bg-muted/60 px-1.5 font-mono text-[9px] text-foreground uppercase"
+																class="border-border bg-muted/50 font-normal text-muted-foreground"
 															>
-																{rev.status}
+																Weight: {task.weight}%
 															</Badge>
-														</div>
-														<p
-															class="rounded-lg border border-border/60 bg-muted/30 p-2.5 text-xs leading-relaxed text-muted-foreground"
-														>
-															<span
-																class="mb-1 block font-mono text-[10px] font-bold tracking-wide text-foreground uppercase"
-																>Reason of Modification:</span
-															>
-															{rev.reason}
-														</p>
-														<div class="font-mono text-[10px] text-muted-foreground">
-															Logged timestamp: {rev.created_at}
+
+															<AlertDialog>
+																<AlertDialogTrigger>
+																	{#snippet child({ props })}
+																		<Button
+																			{...props}
+																			variant="ghost"
+																			size="icon"
+																			class="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+																		>
+																			<RiDeleteBinLine class="h-4 w-4" />
+																		</Button>
+																	{/snippet}
+																</AlertDialogTrigger>
+																<AlertDialogContent>
+																	<AlertDialogHeader
+																		><AlertDialogTitle>Delete task?</AlertDialogTitle
+																		></AlertDialogHeader
+																	>
+																	<AlertDialogFooter>
+																		<AlertDialogCancel>Cancel</AlertDialogCancel>
+																		<AlertDialogAction
+																			onclick={() => deleteProgress(task.id)}
+																			class="bg-destructive text-destructive-foreground"
+																			>Delete</AlertDialogAction
+																		>
+																	</AlertDialogFooter>
+																</AlertDialogContent>
+															</AlertDialog>
 														</div>
 													</div>
-												{/each}
+												</div>
 											</div>
-										{/if}
-									</Card.Content>
-								</Card.Root>
-							</Tabs.Content>
-						</Tabs.Root>
-					</div>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</TabsContent>
 
-					<!-- RIGHT SIDEBAR / METADATA SUMMARY PANEL (1/3 Grid) -->
-					<div class="space-y-6 lg:col-span-1">
-						<!-- Main Summary Card -->
-						<Card.Root
-							class="sticky top-24 overflow-hidden rounded-2xl border-border bg-card shadow-xs"
-						>
-							<div class="border-b border-border bg-muted/40 p-4">
-								<h3
-									class="flex items-center gap-2 text-xs font-bold tracking-wider text-muted-foreground uppercase"
-								>
-									<RiInformationLine class="size-4" />
-									Operational Summary
-								</h3>
+						<TabsContent value="revisions" class="pt-6 outline-none">
+							<div class="mb-6 flex items-center justify-between">
+								<div>
+									<h2 class="text-lg font-semibold">Client Revisions</h2>
+									<p class="text-sm text-muted-foreground">
+										Remaining quota: {remainingRevisions} of {project.allowed_revision_count}
+									</p>
+								</div>
+								{#if remainingRevisions > 0 && currentUserStore.data?.id === project.order?.user_id}
+									<Dialog bind:open={addRevisionOpen}>
+										<DialogTrigger>
+											{#snippet child({ props })}
+												<Button
+													{...props}
+													size="sm"
+													variant="secondary"
+													class="gap-1.5"
+													disabled={remainingRevisions <= 0}
+												>
+													<RiChatQuoteLine class="h-4 w-4" /> Request Revision
+												</Button>
+											{/snippet}
+										</DialogTrigger>
+										<DialogContent>
+											<DialogHeader>
+												<DialogTitle>Request a Revision</DialogTitle>
+												<DialogDescription
+													>Submit your feedback and changes needed.</DialogDescription
+												>
+											</DialogHeader>
+											<div class="space-y-4 py-2">
+												<div class="space-y-1.5">
+													<Label>Issue Title</Label><Input
+														bind:value={revisionForm.title}
+														placeholder="What needs to be changed?"
+													/>
+												</div>
+												<div class="space-y-1.5">
+													<Label>Reason / Details</Label><Textarea
+														bind:value={revisionForm.reason}
+														rows={4}
+														placeholder="Describe the issue in detail..."
+													/>
+												</div>
+											</div>
+											<DialogFooter
+												><Button onclick={addRevision}>Submit Revision</Button></DialogFooter
+											>
+										</DialogContent>
+									</Dialog>
+								{/if}
 							</div>
 
-							<Card.Content class="space-y-4 p-5 text-xs">
-								<!-- Item 1: Timeline Dates -->
-								<div class="space-y-2">
-									<span class="block font-medium text-muted-foreground"
-										>Project Duration Lifecycle</span
+							<div class="space-y-4">
+								{#each project.project_revision ?? [] as rev}
+									<div class="flex flex-col gap-2 rounded-xl border border-border bg-card p-5">
+										<div class="flex items-center justify-between">
+											<h3 class="font-medium text-foreground">{rev.title}</h3>
+											<Badge variant="outline" class={getStatus(rev.status).class}
+												>{getStatus(rev.status).label}</Badge
+											>
+										</div>
+										<p class="text-sm text-muted-foreground">{rev.reason}</p>
+										<span class="mt-2 text-xs text-muted-foreground"
+											>Requested on {formatDate(rev.created_at)}</span
+										>
+									</div>
+								{:else}
+									<div
+										class="text-center py-12 text-muted-foreground border border-dashed border-border rounded-lg"
 									>
-									<div class="space-y-2 rounded-xl border border-border bg-background p-3">
-										<div class="flex items-center justify-between font-mono">
-											<span class="flex items-center gap-1.5 text-muted-foreground"
-												><RiCalendarLine class="size-3.5" /> Start</span
-											>
-											<span class="font-semibold text-foreground"
-												>{project.actual_start_date || 'N/A'}</span
-											>
+										No revisions requested yet.
+									</div>
+								{/each}
+							</div>
+						</TabsContent>
+
+						<!-- PROJECT MEMBER -->
+						<TabsContent value="members" class="pt-6 outline-none">
+							<div class="mb-6 flex items-center justify-between">
+								<h2 class="text-lg font-semibold">Project Team</h2>
+								<AddNewMemberDialog
+									bind:open={addMemberOpen}
+									existingMembers={project.project_members}
+									onInvite={handlePostInvite}
+								></AddNewMemberDialog>
+							</div>
+							<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								{#each project.project_members as member}
+									{@const role = getRole(member)}
+
+									<div
+										class="group flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/40"
+									>
+										<div class="relative shrink-0">
+											<Avatar class="h-9 w-9">
+												<AvatarImage
+													src={member.user.profile_picture}
+													referrerpolicy="no-referrer"
+												/>
+												<AvatarFallback class="bg-muted text-xs font-medium text-muted-foreground">
+													{initials(member.user.full_name)}
+												</AvatarFallback>
+											</Avatar>
+
+											{#if role === 'ADMIN'}
+												<span
+													class="absolute -right-0.5 -bottom-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary ring-2 ring-card"
+												>
+													<RiCheckLine class="h-2 w-2 text-primary-foreground" />
+												</span>
+											{/if}
 										</div>
-										<Separator class="bg-border/60" />
-										<div class="flex items-center justify-between font-mono">
-											<span class="flex items-center gap-1.5 text-muted-foreground"
-												><RiTimeLine class="size-3.5" /> Expected End</span
-											>
-											<span class="font-semibold text-foreground">{project.end_date || 'N/A'}</span>
-										</div>
-									</div>
-								</div>
 
-								<!-- Item 2: Quick Status Indicator Overview -->
-								<div class="space-y-1.5">
-									<div class="flex justify-between">
-										<span class="font-medium text-muted-foreground">Status System Overview</span>
-										<span class="font-mono font-semibold text-foreground">{project.status}</span>
-									</div>
-									<div class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-										<div
-											class="h-full rounded-full bg-primary"
-											style="width: {actualProgressPercentage}%"
-										></div>
-									</div>
-								</div>
-
-								<Separator class="bg-border" />
-
-								<!-- Item 3: Grid Detail List -->
-								<div class="space-y-3 font-mono">
-									<div class="flex items-center justify-between">
-										<span class="font-sans text-muted-foreground">Internal Project ID</span>
-										<span
-											class="rounded bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-foreground select-all"
-											>{project.id}</span
-										>
-									</div>
-									<div class="flex items-center justify-between">
-										<span class="font-sans text-muted-foreground">Procurement Order</span>
-										<span class="text-[11px] font-semibold text-foreground">{project.order_id}</span
-										>
-									</div>
-									<div class="flex items-center justify-between">
-										<span class="font-sans text-muted-foreground">Revision Guard Barrier</span>
-										<span class="text-[11px] font-semibold text-foreground"
-											>{project.project_revision?.length || 0} / {project.allowed_revision_count} Max</span
-										>
-									</div>
-									<div class="flex items-center justify-between">
-										<span class="font-sans text-muted-foreground">Total Member Engaged</span>
-										<span class="text-[11px] font-semibold text-foreground"
-											>{activeMembersCount} Allocated</span
-										>
-									</div>
-								</div>
-
-								<Separator class="bg-border" />
-
-								<!-- Item 4: Mini Avatar Interactive Group -->
-								<div class="space-y-2">
-									<span class="block font-medium text-muted-foreground">Squad Visual Roster</span>
-									<div class="flex items-center -space-x-2 overflow-hidden py-1">
-										{#each project.project_members as m}
-											<div
-												class="flex inline-block size-7 cursor-help items-center justify-center rounded-full border-2 border-card bg-secondary font-mono text-[9px] font-bold text-secondary-foreground shadow-2xs"
-												title={m.user.full_name}
-											>
-												{getInitials(m.user.full_name)}
+										<div class="min-w-0 flex-1">
+											<div class="flex items-center gap-1.5">
+												<p class="truncate text-sm leading-tight font-medium text-foreground">
+													{member.user.full_name}
+												</p>
 											</div>
-										{/each}
+
+											<p class="truncate text-xs text-muted-foreground">
+												{member.user.email}
+											</p>
+										</div>
+
+										<div class="flex items-center gap-2">
+											<Badge
+												variant={role === 'ADMIN'
+													? 'default'
+													: role === 'CLIENT'
+														? 'outline'
+														: 'secondary'}
+												class="shrink-0 text-[10px] font-medium tracking-wide"
+											>
+												{role}
+											</Badge>
+											{#if isOwner}
+												<DropdownMenu.Root>
+													<DropdownMenu.Trigger>
+														{#snippet child({ props })}
+															<Button
+																{...props}
+																size="icon"
+																variant="ghost"
+																class="h-8 w-8 shrink-0 opacity-60 hover:opacity-100"
+															>
+																<RiMore2Fill class="h-4 w-4" />
+															</Button>
+														{/snippet}
+													</DropdownMenu.Trigger>
+
+													<DropdownMenu.Content align="end" class="w-40">
+														<!-- <DropdownMenu.Item
+															onclick={() => handleUpdateMember(member)}
+															class="cursor-pointer"
+														>
+															<RiEdit2Line class="mr-2 h-4 w-4" />
+															<span>Edit</span>
+														</DropdownMenu.Item> -->
+
+														<DropdownMenu.Item
+															onclick={() => handleDeleteMember(member)}
+															class="cursor-pointer text-destructive focus:text-destructive"
+														>
+															<RiDeleteBinLine class="mr-2 h-4 w-4" />
+															<span>Delete</span>
+														</DropdownMenu.Item>
+													</DropdownMenu.Content>
+												</DropdownMenu.Root>
+											{/if}
+										</div>
 									</div>
+								{/each}
+							</div>
+						</TabsContent>
+
+						<TabsContent value="roles" class="pt-6 outline-none">
+							<ProjectRolesTab></ProjectRolesTab>
+						</TabsContent>
+					</Tabs>
+				</div>
+
+				<aside class="space-y-6 lg:col-span-1">
+					<Card class="border-border bg-card shadow-sm">
+						<CardHeader class="pb-3"
+							><CardTitle class="text-sm font-semibold text-foreground"
+								>About this Project</CardTitle
+							></CardHeader
+						>
+						<CardContent class="text-sm leading-relaxed text-muted-foreground">
+							{project.description || 'No description provided.'}
+						</CardContent>
+					</Card>
+
+					<Card class="border-border bg-card shadow-sm">
+						<CardHeader class="pb-3"
+							><CardTitle class="text-sm font-semibold text-foreground">Details</CardTitle
+							></CardHeader
+						>
+						<CardContent class="space-y-4">
+							<div class="grid grid-cols-2 gap-y-4 text-sm">
+								<div class="flex items-center gap-2 text-muted-foreground">
+									<RiCalendarEventLine class="h-4 w-4" /> Start Date
+								</div>
+								<div class="text-right text-foreground">
+									{formatDate(project.actual_start_date)}
 								</div>
 
-								<div class="pt-2">
-									<Button
-										class="h-9 w-full rounded-xl bg-primary text-xs font-semibold text-primary-foreground shadow-sm transition-all hover:opacity-90"
-									>
-										<RiAddLine class="mr-1 size-4" />
-										Deploy Production Patch
-									</Button>
+								<div class="flex items-center gap-2 text-muted-foreground">
+									<RiTimeLine class="h-4 w-4" /> Due Date
 								</div>
-							</Card.Content>
-						</Card.Root>
-					</div>
-				</div>
+								<div class="text-right font-medium text-foreground">
+									{formatDate(project.end_date)}
+								</div>
+
+								<div class="flex items-center gap-2 text-muted-foreground">
+									<RiPulseLine class="h-4 w-4" /> Project Value
+								</div>
+								<div class="text-right text-foreground">
+									{project.order ? formatCurrency(project.order.ordered_price) : '—'}
+								</div>
+							</div>
+
+							<Separator class="bg-border" />
+
+							<div class="space-y-2">
+								<div class="flex items-center justify-between text-sm">
+									<span class="font-medium text-muted-foreground">Overall Progress</span>
+									<span class="font-bold text-primary">{progressPercent}%</span>
+								</div>
+								<Progress value={progressPercent} class="h-2 rounded-full" />
+								<p class="text-right text-xs text-muted-foreground">
+									{completedWeight} of {totalWeight} total weight
+								</p>
+							</div>
+
+							<Separator class="bg-border" />
+
+							<div class="flex items-center justify-between">
+								<div class="flex items-center gap-2 text-sm text-muted-foreground">
+									<RiRefreshLine class="h-4 w-4" /> Revisions Left
+								</div>
+								<div class="flex items-center gap-1.5">
+									<span
+										class="text-sm font-semibold {remainingRevisions === 0
+											? 'text-destructive'
+											: 'text-foreground'}"
+									>
+										{remainingRevisions}
+									</span>
+									<span class="text-xs text-muted-foreground"
+										>/ {project.allowed_revision_count}</span
+									>
+								</div>
+							</div>
+						</CardContent>
+					</Card>
+				</aside>
 			</div>
-		{/if}
-	</main>
+		</main>
+	{:else}
+		<div class="flex h-[50vh] flex-col items-center justify-center space-y-4">
+			<h2 class="text-2xl font-bold text-foreground">Project Not Found</h2>
+			<p class="text-muted-foreground">The project data could not be loaded or does not exist.</p>
+		</div>
+	{/if}
 </div>
