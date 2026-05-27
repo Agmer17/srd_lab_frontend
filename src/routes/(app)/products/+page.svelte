@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
 	import {
 		RiFilter3Line,
 		RiSearchLine,
@@ -35,15 +36,36 @@
 	];
 
 	// Handle Order
-	const handleOrder = () => {
-		const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
-		if (!token) {
+	let isOrdering = $state(false);
+
+	const handleOrder = async () => {
+		const { user } = data;
+		if (!user) {
 			showAuthPopup = true;
 			return;
 		}
 		
-		alert('Order API will be integrated in Feature 3. Redirecting to checkout...');
-		// goto(`/orders/checkout?product=${selectedId}`);
+		if (!selectedId) return;
+
+		isOrdering = true;
+		try {
+			const res = await fetch('/api/orders/create', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ product_id: selectedId })
+			});
+			const result = await res.json();
+			
+			if (res.ok && result.data?.id) {
+				goto(`/orders/checkout/${result.data.id}`);
+			} else {
+				toast.error(result.error || result.message || 'Failed to create order. Please try again.');
+			}
+		} catch (error) {
+			toast.error('Network error while placing order.');
+		} finally {
+			isOrdering = false;
+		}
 	};
 </script>
 
@@ -264,8 +286,12 @@
 						<span class="text-sm font-medium text-muted-foreground">Total price</span>
 						<span class="text-2xl font-bold">{formatPrice(selected.price)}</span>
 					</div>
-					<button class="sprd-btn sprd-btn--primary w-full py-6 flex justify-center items-center text-base" onclick={handleOrder}>
-						Order now <RiArrowRightLine class="h-5 w-5 ml-2" />
+					<button 
+						class="sprd-btn sprd-btn--primary w-full py-6 flex justify-center items-center text-base disabled:opacity-50" 
+						onclick={handleOrder}
+						disabled={isOrdering}
+					>
+						{isOrdering ? 'Processing...' : 'Order now'} <RiArrowRightLine class="h-5 w-5 ml-2" />
 					</button>
 					<p class="text-[11px] text-center text-muted-foreground mt-3 font-medium">Secure payment with QRIS / Virtual Account</p>
 				</div>
