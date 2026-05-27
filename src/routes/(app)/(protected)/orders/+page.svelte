@@ -12,7 +12,6 @@
 	let { myOrders, allOrders } = $derived(data);
 
 	const isAdmin = $derived(currentUserStore.data?.global_role == 'ADMIN');
-	console.log('KENAPA INI ADMIN :  ', isAdmin);
 </script>
 
 <div class="min-h-0 w-full overflow-y-auto p-4 sm:p-6 lg:p-8">

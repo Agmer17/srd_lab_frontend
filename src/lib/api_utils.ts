@@ -10,8 +10,15 @@ export function parseError(error: any): string {
 	return "Unknown error";
 }
 
+export function formatCurrency(val: number) {
+	return new Intl.NumberFormat('id-ID', {
+		style: 'currency',
+		currency: 'IDR',
+		maximumFractionDigits: 0
+	}).format(val);
+}
 
-export const formatDate = (d?: string) =>
+export const formatDate = (d?: string | null) =>
 	d
 		? new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 		: '-';

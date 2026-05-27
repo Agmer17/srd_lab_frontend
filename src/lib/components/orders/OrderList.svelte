@@ -44,7 +44,10 @@
 		// console.log(newStatus);
 		const updatePromise = fetch('/api/orders/update/' + id + '/status', {
 			method: 'PATCH',
-			body: JSON.stringify({ status: newStatus })
+			body: JSON.stringify({ status: newStatus }),
+			headers: {
+				'Content-Type': 'application/json'
+			}
 		}).then(async (res) => {
 			const apiResponse: ApiResponse<Order> = await res.json();
 			if (!apiResponse.success) {
