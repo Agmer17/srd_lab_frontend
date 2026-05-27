@@ -383,25 +383,75 @@
 			</span>
 		</div>
 
-		<div class="home-testimonials-grid">
-			{#each TESTIMONIALS as t (t.id)}
-				<div class="home-testimonial">
-					<div class="home-testi-stars">
-						{#each Array(t.rating) as _}
-							<RiStarFill class="h-3.5 w-3.5" />
-						{/each}
-					</div>
-					<p class="home-testi-text">&ldquo;{t.comment}&rdquo;</p>
-					<div class="home-testi-author">
-						<div class="home-testi-avatar">{t.user_initial}</div>
-						<div>
-							<div class="home-testi-name">{t.user_name}</div>
-							<div class="home-testi-company">{t.company}</div>
+		{#await data.reviewsPromise}
+			<!-- Loading skeleton for testimonials -->
+			<div class="home-testimonials-grid">
+				{#each Array(4) as _}
+					<div class="home-testimonial">
+						<Skeleton class="h-4 w-24 mb-2" />
+						<Skeleton class="h-4 w-full" />
+						<Skeleton class="h-4 w-5/6" />
+						<div class="home-testi-author mt-4">
+							<Skeleton class="h-9 w-9 rounded-full" />
+							<div class="flex-1 space-y-2">
+								<Skeleton class="h-3 w-20" />
+								<Skeleton class="h-3 w-16" />
+							</div>
 						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{:then res}
+			{@const dbReviews = res && res.reviews ? res.reviews.map((r: any) => ({
+				id: r.id,
+				user_name: r.user?.name || 'Customer',
+				user_initial: r.user?.name ? r.user.name.substring(0,2).toUpperCase() : 'CU',
+				company: 'Verified Buyer', // Since backend Review model doesn't store company
+				rating: r.rating,
+				comment: r.comment
+			})) : []}
+			{@const mergedReviews = [...dbReviews, ...TESTIMONIALS].slice(0, 4)}
+
+			<div class="home-testimonials-grid">
+				{#each mergedReviews as t (t.id)}
+					<div class="home-testimonial">
+						<div class="home-testi-stars">
+							{#each Array(t.rating) as _}
+								<RiStarFill class="h-3.5 w-3.5" />
+							{/each}
+						</div>
+						<p class="home-testi-text">&ldquo;{t.comment}&rdquo;</p>
+						<div class="home-testi-author">
+							<div class="home-testi-avatar">{t.user_initial}</div>
+							<div>
+								<div class="home-testi-name">{t.user_name}</div>
+								<div class="home-testi-company">{t.company}</div>
+							</div>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{:catch}
+			<div class="home-testimonials-grid">
+				{#each TESTIMONIALS.slice(0, 4) as t (t.id)}
+					<div class="home-testimonial">
+						<div class="home-testi-stars">
+							{#each Array(t.rating) as _}
+								<RiStarFill class="h-3.5 w-3.5" />
+							{/each}
+						</div>
+						<p class="home-testi-text">&ldquo;{t.comment}&rdquo;</p>
+						<div class="home-testi-author">
+							<div class="home-testi-avatar">{t.user_initial}</div>
+							<div>
+								<div class="home-testi-name">{t.user_name}</div>
+								<div class="home-testi-company">{t.company}</div>
+							</div>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{/await}
 	</section>
 
 	<!-- ══ CTA BANNER ════════════════════════════════════════════════ -->
@@ -410,7 +460,7 @@
 			<h2>Ready to start your project?</h2>
 			<p>Pick a service, fill in your brief, and we kick off the same day.</p>
 		</div>
-		<div class="flex shrink-0 gap-2.5">
+		<div class="flex flex-wrap shrink-0 gap-2.5 mt-2 sm:mt-0 w-full sm:w-auto">
 			<button class="sprd-btn sprd-btn--default sprd-btn--lg" onclick={() => goto('/products')}>
 				Browse services <RiArrowRightLine class="inline-block h-5 w-5 ml-1" />
 			</button>
@@ -1000,6 +1050,10 @@
 		.home-products-grid,
 		.home-portfolio-grid {
 			grid-template-columns: 1fr;
+		}
+
+		.home-cta-banner {
+			padding: 32px 24px;
 		}
 	}
 </style>

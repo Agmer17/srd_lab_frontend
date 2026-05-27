@@ -56,7 +56,7 @@
 			const result = await res.json();
 
 			if (res.ok && result.data?.payment_id) {
-				goto(`/payment/detail/${result.data.payment_id}`);
+				goto(`/payments/detail/${result.data.payment_id}`);
 			} else {
 				toast.error(result.error || result.message || 'Failed to initialize payment.');
 			}

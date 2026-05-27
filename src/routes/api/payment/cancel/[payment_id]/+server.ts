@@ -1,24 +1,39 @@
-import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { PUBLIC_API_URL } from '$env/static/public';
 
-export const POST: RequestHandler = async ({ params, locals, fetch }) => {
-    const token = locals.auth_data?.access_token;
-    if (!token) {
-        return json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
+export const POST: RequestHandler = async ({ params, cookies, fetch }) => {
+    const accessToken = cookies.get('access_token');
 
     try {
         const res = await fetch(`${PUBLIC_API_URL}/payment/cancel/${params.payment_id}`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${token}`
+                Authorization: 'Bearer ' + accessToken
             }
         });
 
-        const data = await res.json();
-        return json(data, { status: res.status });
-    } catch (err: any) {
-        return json({ success: false, error: err.message }, { status: 500 });
+        let data: any;
+        try {
+            data = await res.json();
+        } catch {
+            data = { error: await res.text() };
+        }
+
+        if (!res.ok) {
+            return new Response(
+                JSON.stringify({ success: false, error: data.error ?? data }),
+                { status: res.status, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+
+        return new Response(
+            JSON.stringify({ success: true, message: 'Payment cancelled', data: data?.data ?? null }),
+            { headers: { 'Content-Type': 'application/json' } }
+        );
+    } catch (error) {
+        return new Response(
+            JSON.stringify({ success: false, error: 'Internal server error' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
     }
 };
