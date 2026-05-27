@@ -8,6 +8,8 @@
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
+	import { Checkbox } from '$lib/components/ui/checkbox';
+	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { RiUserAddLine, RiSearchLine, RiUserLine } from 'remixicon-svelte';
 	import type { User } from '$lib/types/user';
 	import type { ProjectMember, ProjectRole } from '$lib/types/projects';
@@ -18,7 +20,7 @@
 	interface Props {
 		open?: boolean;
 		existingMembers: ProjectMember[];
-		onInvite: (userId: string, roleId: string) => Promise<void>;
+		onInvite: (userId: string, roleId: string, isOwner: boolean) => Promise<void>;
 	}
 
 	let { open = $bindable(false), existingMembers, onInvite }: Props = $props();
@@ -33,6 +35,7 @@
 	let search = $state('');
 	let selectedUserId = $state('');
 	let selectedRoleId = $state('');
+	let isOwner = $state(false);
 
 	// ── Derived ───────────────────────────────────────────────
 	let existingMemberUserIds = $derived(new Set(existingMembers.map((m) => m.user.id)));
@@ -81,13 +84,14 @@
 		search = '';
 		selectedUserId = '';
 		selectedRoleId = '';
+		isOwner = false;
 	}
 
 	async function handleSubmit() {
 		if (!canSubmit) return;
 		submitting = true;
 		try {
-			await onInvite(selectedUserId, selectedRoleId);
+			await onInvite(selectedUserId, selectedRoleId, isOwner);
 			open = false;
 			reset();
 		} finally {
@@ -99,14 +103,11 @@
 	let isDesktop = new MediaQuery('(min-width: 768px)');
 </script>
 
-<!-- ── Shared content snippet ──────────────────────────────────── -->
 {#snippet formContent()}
 	<div class="space-y-4">
-		<!-- User picker -->
 		<div class="space-y-1.5">
 			<Label class="text-sm font-medium">Member</Label>
 
-			<!-- Search -->
 			<div class="relative">
 				<RiSearchLine
 					class="absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
@@ -119,8 +120,7 @@
 				/>
 			</div>
 
-			<!-- User list -->
-			<div class="max-h-44 overflow-y-auto rounded-md border border-border">
+			<ScrollArea class="h-36 rounded-md border border-border">
 				{#if loading}
 					<div class="flex items-center justify-center py-6 text-xs text-muted-foreground">
 						Loading users...
@@ -130,50 +130,51 @@
 						No users found
 					</div>
 				{:else}
-					{#each filteredUsers as user}
-						{@const isSelected = selectedUserId === user.id}
-						<button
-							type="button"
-							onclick={() => (selectedUserId = isSelected ? '' : user.id)}
-							class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors
-                                {isSelected
-								? 'bg-primary/10'
-								: 'hover:bg-muted/60'} border-b border-border last:border-0"
-						>
-							<Avatar class="h-7 w-7 shrink-0">
-								<AvatarImage src={user.profile_picture} referrerpolicy="no-referrer" />
-								<AvatarFallback class="bg-muted text-[10px] font-medium text-muted-foreground">
-									{initials(user.full_name)}
-								</AvatarFallback>
-							</Avatar>
-							<div class="min-w-0 flex-1">
-								<p class="truncate text-sm leading-tight font-medium text-foreground">
-									{user.full_name}
-								</p>
-								<p class="truncate text-xs text-muted-foreground">{user.email}</p>
-							</div>
-							{#if isSelected}
-								<span
-									class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary"
-								>
-									<svg class="h-2.5 w-2.5 text-primary-foreground" viewBox="0 0 10 8" fill="none">
-										<path
-											d="M1 4l2.5 2.5L9 1"
-											stroke="currentColor"
-											stroke-width="1.5"
-											stroke-linecap="round"
-											stroke-linejoin="round"
-										/>
-									</svg>
-								</span>
-							{/if}
-						</button>
-					{/each}
+					<div class="flex flex-col">
+						{#each filteredUsers as user}
+							{@const isSelected = selectedUserId === user.id}
+							<button
+								type="button"
+								onclick={() => (selectedUserId = isSelected ? '' : user.id)}
+								class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors
+                                    {isSelected
+									? 'bg-primary/10'
+									: 'hover:bg-muted/60'} border-b border-border last:border-0"
+							>
+								<Avatar class="h-7 w-7 shrink-0">
+									<AvatarImage src={user.profile_picture} referrerpolicy="no-referrer" />
+									<AvatarFallback class="bg-muted text-[10px] font-medium text-muted-foreground">
+										{initials(user.full_name)}
+									</AvatarFallback>
+								</Avatar>
+								<div class="min-w-0 flex-1">
+									<p class="truncate text-sm leading-tight font-medium text-foreground">
+										{user.full_name}
+									</p>
+									<p class="truncate text-xs text-muted-foreground">{user.email}</p>
+								</div>
+								{#if isSelected}
+									<span
+										class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary"
+									>
+										<svg class="h-2.5 w-2.5 text-primary-foreground" viewBox="0 0 10 8" fill="none">
+											<path
+												d="M1 4l2.5 2.5L9 1"
+												stroke="currentColor"
+												stroke-width="1.5"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+											/>
+										</svg>
+									</span>
+								{/if}
+							</button>
+						{/each}
+					</div>
 				{/if}
-			</div>
+			</ScrollArea>
 		</div>
 
-		<!-- Role picker -->
 		<div class="space-y-1.5">
 			<Label class="text-sm font-medium">Role</Label>
 			<Select.Root bind:value={selectedRoleId} type="single" disabled={loading}>
@@ -192,7 +193,28 @@
 			</Select.Root>
 		</div>
 
-		<!-- Selected preview -->
+		<div
+			class="rounded-lg border border-border bg-muted/30 p-3 transition-colors has-data-[state=checked]:border-primary/50 has-data-[state=checked]:bg-primary/5"
+		>
+			<div class="flex items-start gap-3">
+				<Checkbox id="isOwner" bind:checked={isOwner} disabled={loading} class="mt-0.5" />
+				<div class="min-w-0 flex-1 space-y-0.5">
+					<Label
+						for="isOwner"
+						class="cursor-pointer text-sm leading-tight font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+					>
+						Assign as Project Owner
+					</Label>
+					<p class="text-xs text-muted-foreground">
+						Owners have full administrative access and control over this project.
+					</p>
+				</div>
+				{#if isOwner}
+					<Badge variant="default" class="shrink-0 text-[10px]">Owner</Badge>
+				{/if}
+			</div>
+		</div>
+
 		{#if selectedUser}
 			<div class="flex items-center gap-3 rounded-lg border border-border bg-muted/50 px-3 py-2.5">
 				<Avatar class="h-7 w-7 shrink-0">
@@ -205,15 +227,24 @@
 					<p class="truncate font-medium text-foreground">{selectedUser.full_name}</p>
 					<p class="truncate text-muted-foreground">{selectedUser.email}</p>
 				</div>
-				{#if selectedRole}
-					<Badge variant="secondary" class="shrink-0 text-[10px]">{selectedRole.role_name}</Badge>
-				{/if}
+				<div class="flex shrink-0 items-center gap-1.5">
+					{#if isOwner}
+						<Badge
+							class="shrink-0 border-none bg-amber-500 px-1.5 py-0.5 text-[10px] text-white hover:bg-amber-600"
+							>Owner</Badge
+						>
+					{/if}
+					{#if selectedRole}
+						<Badge variant="secondary" class="shrink-0 px-1.5 py-0.5 text-[10px]"
+							>{selectedRole.role_name}</Badge
+						>
+					{/if}
+				</div>
 			</div>
 		{/if}
 	</div>
 {/snippet}
 
-<!-- ── MOBILE → DRAWER ────────────────────────────────────────── -->
 {#if !isDesktop.current}
 	<Drawer.Root bind:open>
 		<Drawer.Trigger>
@@ -224,8 +255,8 @@
 				</Button>
 			{/snippet}
 		</Drawer.Trigger>
-		<Drawer.Content>
-			<div class="mx-auto w-full max-w-sm pb-6">
+		<Drawer.Content class="max-h-[90dvh]">
+			<div class="mx-auto w-full max-w-sm overflow-y-auto pb-6">
 				<Drawer.Header class="text-left">
 					<Drawer.Title class="flex items-center gap-2 text-base font-semibold">
 						<span
@@ -260,8 +291,6 @@
 			</div>
 		</Drawer.Content>
 	</Drawer.Root>
-
-	<!-- ── DESKTOP → DIALOG ───────────────────────────────────────── -->
 {:else}
 	<Dialog.Root bind:open>
 		<Dialog.Trigger>
@@ -272,7 +301,7 @@
 				</Button>
 			{/snippet}
 		</Dialog.Trigger>
-		<Dialog.Content class="sm:max-w-md">
+		<Dialog.Content class="max-h-[90dvh] overflow-y-auto sm:max-w-md">
 			<Dialog.Header>
 				<Dialog.Title class="flex items-center gap-2.5 text-base">
 					<span

@@ -40,10 +40,7 @@
 		{ title: 'chat', url: '/chat', icon: RiMessage2Line }
 	];
 
-	const adminItems = [
-		{ title: 'Users', url: '/user-management', icon: RiUserLine },
-		{ title: 'Analytics', url: '/analytics', icon: RiBarChartLine }
-	];
+	const adminItems = [{ title: 'Users', url: '/user-management', icon: RiUserLine }];
 
 	function isActive(url: string) {
 		return page.url.pathname === url;
@@ -64,7 +61,7 @@
 		<p
 			class="text-xl font-semibold tracking-tight text-sidebar-foreground group-data-[collapsible=icon]:hidden"
 		>
-			srdlab creative
+			srd creative
 		</p>
 
 		{#if currentUserStore.data}
