@@ -44,9 +44,19 @@
 		RiBarChartBoxLine,
 		RiTeamLine,
 		RiMore2Fill,
-		RiShieldUserLine
+		RiShieldUserLine,
+		RiShieldLine,
+		RiArrowLeftLine,
+		RiPencilLine,
+		RiCloseLine,
+		RiMoreLine
 	} from 'remixicon-svelte';
-	import type { Project, ProjectMember, ProjectProgress } from '$lib/types/projects';
+	import type {
+		Project,
+		ProjectMember,
+		ProjectProgress,
+		ProjectRevision
+	} from '$lib/types/projects';
 	import { formatCurrency, formatDate, parseError } from '$lib/api_utils';
 	import { initials } from '$lib/string_utils';
 	import { currentUserStore } from '$lib/state/currentUser.svelte.js';
@@ -58,10 +68,19 @@
 	import { invalidateAll } from '$app/navigation';
 	import AddNewMemberDialog from '$lib/components/projects/AddNewMemberDialog.svelte';
 	import ProjectRolesTab from '$lib/components/projects/ProjectRolesTab.svelte';
+	import EditProjectDialog from '$lib/components/projects/EditProjectDialog.svelte';
 
 	let { data } = $props();
 
 	const project = $derived<Project | null>(data.projectDetails);
+
+	interface UpdateProjectRequest {
+		name?: string;
+		description?: string;
+		status?: string;
+		allowed_revision?: number;
+		end_date?: string;
+	}
 
 	// ─── Computed ─────────────────────────────────────────────────────────────────
 	const completedWeight = $derived(
@@ -82,37 +101,45 @@
 
 	// ─── Form States ──────────────────────────────────────────────────────────────
 	let projectForm = $state({
-		name: project?.name ?? '',
-		description: project?.description ?? '',
-		status: project?.status ?? ''
+		name: project?.name || '',
+		description: project?.description || '',
+		status: project?.status || '',
+		allowed_revision: project?.allowed_revision_count || 0,
+		end_date: project?.end_date || ''
 	});
-	let memberForm = $state({ name: '', email: '', role_name: 'DEVELOPER' });
 	let revisionForm = $state({ title: '', reason: '' });
 
 	const statusConfig: Record<string, { label: string; class: string }> = {
-		IN_PROGRESS: { label: 'In Progress', class: 'bg-primary/10 text-primary hover:bg-primary/20' },
-		COMPLETED: {
-			label: 'Completed',
+		pending: {
+			label: 'Pending',
+			class: 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20'
+		},
+
+		accepted: {
+			label: 'Accepted',
 			class: 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20'
 		},
-		PENDING: { label: 'Pending', class: 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20' },
-		ON_HOLD: { label: 'On Hold', class: 'bg-muted text-muted-foreground hover:bg-muted/80' },
-		CANCELLED: {
-			label: 'Cancelled',
+
+		rejected: {
+			label: 'Rejected',
 			class: 'bg-destructive/10 text-destructive hover:bg-destructive/20'
-		},
-		IN_REVIEW: {
-			label: 'In Review',
-			class: 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
 		}
 	};
+
+	const projectStatusConfig: Record<string, { label: string; class: string }> = {
+		in_progress: { label: 'In Progress', class: 'text-blue-600' },
+		in_review: { label: 'In Review', class: 'text-amber-600' },
+		completed: { label: 'Completed', class: 'text-emerald-600' },
+		archive: { label: 'Archive', class: 'text-muted-foreground' }
+	};
+
 	function getStatus(key: string) {
-		return statusConfig[key] ?? statusConfig['ON_HOLD'];
+		return statusConfig[key] ?? statusConfig['pending'];
 	}
 
 	function getRole(member: ProjectMember) {
 		if (member.is_owner) {
-			return 'ADMIN';
+			return 'OWNER';
 		} else if (member.id === project?.order?.user_id) {
 			return 'CLIENT';
 		} else {
@@ -123,15 +150,67 @@
 	// ─── Handlers ─────────────────────────────────────────────────────────────────
 	function saveProject() {
 		if (!project) return;
-		project.name = projectForm.name;
-		project.description = projectForm.description;
-		project.status = projectForm.status;
+
+		// Siapkan objek kosong untuk nampung data yang berubah
+		const payload: UpdateProjectRequest = {};
+
+		// Bandingin field satu per satu
+		if (projectForm.name !== project.name) {
+			payload.name = projectForm.name;
+		}
+
+		if (projectForm.description !== project.description) {
+			payload.description = projectForm.description;
+		}
+
+		if (projectForm.status !== project.status) {
+			payload.status = projectForm.status;
+		}
+
+		// Perhatikan nama field aslinya 'allowed_revision_count'
+		if (projectForm.allowed_revision !== project.allowed_revision_count) {
+			payload.allowed_revision = projectForm.allowed_revision;
+		}
+
+		// Pastikan format date dari form sesuai dengan ekspektasi backend (biasanya YYYY-MM-DD / RFC3339)
+		if (projectForm.end_date !== project.end_date) {
+			payload.end_date = projectForm.end_date;
+		}
+
+		// Cek apakah ada data yang berubah
+		if (Object.keys(payload).length === 0) {
+			console.log('Nggak ada data yang diubah!');
+			editProjectOpen = false;
+			return;
+		}
+
+		console.log('Payload untuk API:', payload);
+
+		const updateProm = fetch('/api/projects/update/' + project.id, {
+			method: 'PATCH',
+			body: JSON.stringify(payload)
+		}).then(async (res) => {
+			const apiResponse: ApiResponse<Project> = await res.json();
+			if (!apiResponse.success) {
+				throw new Error(parseError(apiResponse.error));
+			}
+
+			await invalidateAll();
+			return apiResponse;
+		});
+
+		toast.promise(updateProm, {
+			loading: 'trying to update the project data',
+			success: (result) => result.message,
+			error: (err) => {
+				if (err instanceof Error) return err.message;
+				return 'Something went wrong';
+			},
+			duration: 2000
+		});
 		editProjectOpen = false;
 	}
-	function addMember() {
-		if (!project) return;
-		/* Omitted for brevity */ addMemberOpen = false;
-	}
+
 	function toggleProgress(progress: ProjectProgress) {
 		if (!project) return;
 
@@ -227,20 +306,64 @@
 		});
 	}
 
+	function updateRevisionStatus(
+		revisionId: string,
+		newStatus: 'pending' | 'accepted' | 'rejected'
+	) {
+		if (!project) return;
+
+		// Menyesuaikan dengan pattern path API SvelteKit kamu
+		const updateRevProm = fetch('/api/projects/' + project.id + '/revision/update/' + revisionId, {
+			method: 'PATCH',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ status: newStatus })
+		}).then(async (res) => {
+			const apiResponse: ApiResponse<ProjectRevision> = await res.json();
+			if (!apiResponse.success) {
+				throw new Error(parseError(apiResponse.error));
+			}
+
+			await invalidateAll();
+			return apiResponse;
+		});
+
+		toast.promise(updateRevProm, {
+			loading: `Updating revision status to ${newStatus}...`,
+			success: (result) => result.message,
+			error: (err) => {
+				if (err instanceof Error) return err.message;
+				return 'Something went wrong';
+			},
+			duration: 2000
+		});
+	}
 	function addRevision() {
 		if (!project) return;
-		const newRev: any = {
-			// Typed as any or ProjectRevision depending on your imports
-			id: crypto.randomUUID(),
-			project_id: project.id,
-			title: revisionForm.title,
-			reason: revisionForm.reason,
-			status: 'PENDING',
-			created_at: new Date().toISOString()
-		};
-		project.project_revision = [...(project.project_revision ?? []), newRev];
-		revisionForm = { title: '', reason: '' };
 		addRevisionOpen = false;
+		const addRevProm = fetch('/api/projects/' + project.id + '/revision/add', {
+			method: 'POST',
+			body: JSON.stringify(revisionForm)
+		}).then(async (res) => {
+			const apiResponse: ApiResponse<ProjectRevision> = await res.json();
+			if (!apiResponse.success) {
+				throw new Error(parseError(apiResponse.error));
+			}
+
+			await invalidateAll();
+			return apiResponse;
+		});
+
+		toast.promise(addRevProm, {
+			loading: 'trying to create a revision',
+			success: (result) => result.message,
+			error: (err) => {
+				if (err instanceof Error) return err.message;
+				return 'Something went wrong';
+			},
+			duration: 2000
+		});
 	}
 
 	function isCurrentOwner(id: string | undefined) {
@@ -252,11 +375,59 @@
 		);
 	}
 
-	async function handlePostInvite(userId: string, roleId: string) {}
+	async function handlePostInvite(userId: string, roleId: string, isOwner: boolean) {
+		const addMemberProm = fetch('/api/projects/' + project?.id + '/members/add', {
+			method: 'POST',
+			body: JSON.stringify({
+				project_id: project?.id,
+				user_id: userId,
+				role_id: roleId,
+				isOwner: isOwner
+			})
+		}).then(async (res) => {
+			const apiResponse: ApiResponse<ProjectMember[]> = await res.json();
+			if (!apiResponse.success) {
+				throw new Error(parseError(apiResponse.error));
+			}
 
-	// async function handleUpdateMember(member: ProjectMember) {}
+			await invalidateAll();
+			return apiResponse;
+		});
 
-	async function handleDeleteMember(member: ProjectMember) {}
+		toast.promise(addMemberProm, {
+			loading: 'trying to add new member....',
+			success: (result) => result.message,
+			error: (err) => {
+				if (err instanceof Error) return err.message;
+				return 'Something went wrong';
+			},
+			duration: 2000
+		});
+	}
+
+	async function handleDeleteMember(member: ProjectMember) {
+		const addMemberProm = fetch('/api/projects/' + project?.id + '/members/delete/' + member.id, {
+			method: 'DELETE'
+		}).then(async (res) => {
+			const apiResponse: ApiResponse<string> = await res.json();
+			if (!apiResponse.success) {
+				throw new Error(parseError(apiResponse.error));
+			}
+
+			await invalidateAll();
+			return apiResponse;
+		});
+
+		toast.promise(addMemberProm, {
+			loading: 'trying to remove member from project....',
+			success: (result) => result.message,
+			error: (err) => {
+				if (err instanceof Error) return err.message;
+				return 'Something went wrong';
+			},
+			duration: 2000
+		});
+	}
 
 	const isOwner = $state<boolean>(isCurrentOwner(currentUserStore.data?.id));
 </script>
@@ -270,58 +441,12 @@
 				<div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
 					<div class="flex items-center gap-4">
 						<h1 class="text-2xl font-bold tracking-tight">{project.name}</h1>
-						<Badge variant="secondary" class={getStatus(project.status).class}>
-							{getStatus(project.status).label}
+						<Badge variant="secondary">
+							{project.status}
 						</Badge>
 					</div>
 
-					<Dialog bind:open={editProjectOpen}>
-						<DialogTrigger>
-							{#snippet child({ props })}
-								<Button {...props} variant="outline" size="sm" class="gap-1.5 shadow-sm">
-									<RiEdit2Line class="h-4 w-4" /> Edit Project
-								</Button>
-							{/snippet}
-						</DialogTrigger>
-						<DialogContent class="sm:max-w-lg">
-							<DialogHeader>
-								<DialogTitle>Edit Project</DialogTitle>
-								<DialogDescription>Update project details and status.</DialogDescription>
-							</DialogHeader>
-							<div class="space-y-4 py-2">
-								<div class="space-y-1.5">
-									<Label>Project Name</Label><Input bind:value={projectForm.name} />
-								</div>
-								<div class="space-y-1.5">
-									<Label>Description</Label><Textarea
-										bind:value={projectForm.description}
-										rows={3}
-									/>
-								</div>
-								<div class="space-y-1.5">
-									<Label>Status</Label>
-									<Select bind:value={projectForm.status} type="single">
-										<SelectTrigger>
-											{#if projectForm.status}
-												{getStatus(projectForm.status).label}
-											{:else}
-												Select status
-											{/if}
-										</SelectTrigger>
-										<SelectContent>
-											{#each Object.keys(statusConfig) as s}
-												<SelectItem value={s}>{getStatus(s).label}</SelectItem>
-											{/each}
-										</SelectContent>
-									</Select>
-								</div>
-							</div>
-							<DialogFooter>
-								<Button variant="ghost" onclick={() => (editProjectOpen = false)}>Cancel</Button>
-								<Button onclick={saveProject}>Save Changes</Button>
-							</DialogFooter>
-						</DialogContent>
-					</Dialog>
+					<EditProjectDialog bind:editProjectOpen bind:projectForm {saveProject} />
 				</div>
 			</div>
 		</header>
@@ -331,7 +456,7 @@
 				<div class="space-y-6 lg:col-span-2">
 					<Tabs value="tasks" class="w-full">
 						<TabsList
-							class="inline-flex h-auto w-full gap-1 rounded-2xl border border-border bg-muted/40 p-1.5"
+							class="inline-flex h-auto w-full justify-start overflow-x-auto overflow-y-hidden rounded-2xl border border-border bg-muted/40 p-1.5 whitespace-nowrap"
 						>
 							{#each [{ value: 'tasks', label: 'Tasks & Progress', icon: RiBarChartBoxLine }, { value: 'revisions', label: 'Client Revisions', icon: RiChatQuoteLine }, { value: 'members', label: 'Team Members', icon: RiTeamLine }, { value: 'roles', label: 'Roles & Permissions', icon: RiShieldUserLine }] as tab}
 								{@const Icon = tab.icon}
@@ -468,77 +593,199 @@
 						</TabsContent>
 
 						<TabsContent value="revisions" class="pt-6 outline-none">
+							<!-- Header -->
 							<div class="mb-6 flex items-center justify-between">
-								<div>
-									<h2 class="text-lg font-semibold">Client Revisions</h2>
-									<p class="text-sm text-muted-foreground">
-										Remaining quota: {remainingRevisions} of {project.allowed_revision_count}
-									</p>
+								<div class="space-y-0.5">
+									<h2 class="text-lg font-semibold text-foreground">Revisions</h2>
+									<div class="flex items-center gap-1.5">
+										<p class="text-sm text-muted-foreground">Quota used:</p>
+										<div class="flex items-center gap-1">
+											{#each Array(project.allowed_revision_count) as _, i}
+												<div
+													class="h-1.5 w-4 rounded-full transition-colors {i <
+													project.allowed_revision_count - remainingRevisions
+														? 'bg-primary'
+														: 'bg-muted'}"
+												></div>
+											{/each}
+										</div>
+										<span class="text-xs text-muted-foreground">
+											{project.allowed_revision_count -
+												remainingRevisions}/{project.allowed_revision_count}
+										</span>
+									</div>
 								</div>
+
 								{#if remainingRevisions > 0 && currentUserStore.data?.id === project.order?.user_id}
 									<Dialog bind:open={addRevisionOpen}>
 										<DialogTrigger>
 											{#snippet child({ props })}
-												<Button
-													{...props}
-													size="sm"
-													variant="secondary"
-													class="gap-1.5"
-													disabled={remainingRevisions <= 0}
-												>
-													<RiChatQuoteLine class="h-4 w-4" /> Request Revision
+												<Button {...props} size="sm" class="gap-1.5">
+													<RiChatQuoteLine class="h-4 w-4" />
+													Request Revision
 												</Button>
 											{/snippet}
 										</DialogTrigger>
-										<DialogContent>
+										<DialogContent class="sm:max-w-md">
 											<DialogHeader>
-												<DialogTitle>Request a Revision</DialogTitle>
-												<DialogDescription
-													>Submit your feedback and changes needed.</DialogDescription
-												>
+												<DialogTitle class="flex items-center gap-2.5 text-base">
+													<span
+														class="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary"
+													>
+														<RiChatQuoteLine class="h-4 w-4" />
+													</span>
+													Request a Revision
+												</DialogTitle>
+												<DialogDescription class="text-sm text-muted-foreground">
+													Submit your feedback and describe what needs to change.
+												</DialogDescription>
 											</DialogHeader>
-											<div class="space-y-4 py-2">
+											<Separator />
+											<div class="space-y-4 py-1">
 												<div class="space-y-1.5">
-													<Label>Issue Title</Label><Input
+													<Label class="text-sm font-medium">Issue Title</Label>
+													<Input
 														bind:value={revisionForm.title}
-														placeholder="What needs to be changed?"
+														placeholder="e.g. Wrong color on header section"
+														class="h-9"
 													/>
 												</div>
 												<div class="space-y-1.5">
-													<Label>Reason / Details</Label><Textarea
+													<Label class="text-sm font-medium">Reason / Details</Label>
+													<Textarea
 														bind:value={revisionForm.reason}
 														rows={4}
 														placeholder="Describe the issue in detail..."
+														class="resize-none text-sm"
 													/>
 												</div>
 											</div>
-											<DialogFooter
-												><Button onclick={addRevision}>Submit Revision</Button></DialogFooter
-											>
+											<Separator />
+											<DialogFooter class="gap-2 sm:gap-2">
+												<Button
+													variant="outline"
+													size="sm"
+													onclick={() => (addRevisionOpen = false)}
+												>
+													Cancel
+												</Button>
+												<Button
+													size="sm"
+													onclick={addRevision}
+													disabled={!revisionForm.title.trim() || !revisionForm.reason.trim()}
+													class="gap-1.5"
+												>
+													<RiChatQuoteLine class="h-4 w-4" />
+													Submit Revision
+												</Button>
+											</DialogFooter>
 										</DialogContent>
 									</Dialog>
 								{/if}
 							</div>
 
-							<div class="space-y-4">
-								{#each project.project_revision ?? [] as rev}
-									<div class="flex flex-col gap-2 rounded-xl border border-border bg-card p-5">
-										<div class="flex items-center justify-between">
-											<h3 class="font-medium text-foreground">{rev.title}</h3>
-											<Badge variant="outline" class={getStatus(rev.status).class}
-												>{getStatus(rev.status).label}</Badge
+							<!-- List -->
+							<div class="space-y-2">
+								{#each project.project_revision ?? [] as rev, i}
+									{@const status = getStatus(rev.status)}
+									<div
+										class="group rounded-lg border border-border bg-card transition-colors hover:bg-muted/20"
+									>
+										<!-- Top bar -->
+										<div class="flex items-center gap-3 px-4 py-3">
+											<!-- Index pill -->
+											<span class="shrink-0 font-mono text-xs text-muted-foreground">
+												REV-{String(rev.id).slice(0, 9)}...
+											</span>
+
+											<Separator orientation="vertical" class="h-4" />
+
+											<!-- Title -->
+											<p class="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+												{rev.title}
+											</p>
+
+											<!-- Status badge -->
+											<span
+												class="shrink-0 rounded-sm px-2 py-0.5 text-[11px] font-semibold tracking-wide {status.class}"
 											>
+												{status.label.toUpperCase()}
+											</span>
+
+											<!-- Update status dropdown -->
+											<DropdownMenu.Root>
+												<DropdownMenu.Trigger>
+													{#snippet child({ props })}
+														<Button
+															{...props}
+															variant="ghost"
+															size="icon"
+															class="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 data-[state=open]:opacity-100"
+														>
+															<RiMoreLine class="h-4 w-4" />
+														</Button>
+													{/snippet}
+												</DropdownMenu.Trigger>
+												<DropdownMenu.Content align="end" class="w-44">
+													<DropdownMenu.Label
+														class="text-xs font-semibold text-muted-foreground uppercase"
+													>
+														Update Status
+													</DropdownMenu.Label>
+													<DropdownMenu.Separator />
+													<DropdownMenu.Item
+														onclick={() => updateRevisionStatus(rev.id, 'pending')}
+														class="cursor-pointer gap-2 text-sm"
+													>
+														<div class="h-2 w-2 rounded-full bg-amber-500"></div>
+														Pending
+													</DropdownMenu.Item>
+													<DropdownMenu.Item
+														onclick={() => updateRevisionStatus(rev.id, 'accepted')}
+														class="cursor-pointer gap-2 text-sm"
+													>
+														<div class="h-2 w-2 rounded-full bg-emerald-500"></div>
+														Accepted
+													</DropdownMenu.Item>
+													<DropdownMenu.Item
+														onclick={() => updateRevisionStatus(rev.id, 'rejected')}
+														class="cursor-pointer gap-2 text-sm"
+													>
+														<div class="h-2 w-2 rounded-full bg-destructive"></div>
+														Rejected
+													</DropdownMenu.Item>
+												</DropdownMenu.Content>
+											</DropdownMenu.Root>
 										</div>
-										<p class="text-sm text-muted-foreground">{rev.reason}</p>
-										<span class="mt-2 text-xs text-muted-foreground"
-											>Requested on {formatDate(rev.created_at)}</span
-										>
+
+										<Separator />
+
+										<!-- Reason -->
+										<div class="px-4 py-3">
+											<p class="text-sm leading-relaxed text-muted-foreground">{rev.reason}</p>
+										</div>
+
+										<!-- Footer -->
+										<div class="flex items-center gap-1.5 border-t border-border px-4 py-2">
+											<RiTimeLine class="h-3 w-3 text-muted-foreground" />
+											<span class="text-xs text-muted-foreground">
+												Requested on {formatDate(rev.created_at)}
+											</span>
+										</div>
 									</div>
 								{:else}
 									<div
-										class="text-center py-12 text-muted-foreground border border-dashed border-border rounded-lg"
+										class="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-14 text-center"
 									>
-										No revisions requested yet.
+										<div
+											class="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted/50"
+										>
+											<RiChatQuoteLine class="h-5 w-5 text-muted-foreground" />
+										</div>
+										<h3 class="text-sm font-medium text-foreground">No revisions yet</h3>
+										<p class="mt-1 text-xs text-muted-foreground">
+											When a client requests a change, it will appear here.
+										</p>
 									</div>
 								{/each}
 							</div>
@@ -572,7 +819,7 @@
 												</AvatarFallback>
 											</Avatar>
 
-											{#if role === 'ADMIN'}
+											{#if role === 'OWNER'}
 												<span
 													class="absolute -right-0.5 -bottom-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary ring-2 ring-card"
 												>
@@ -595,7 +842,7 @@
 
 										<div class="flex items-center gap-2">
 											<Badge
-												variant={role === 'ADMIN'
+												variant={role === 'OWNER'
 													? 'default'
 													: role === 'CLIENT'
 														? 'outline'
@@ -604,23 +851,27 @@
 											>
 												{role}
 											</Badge>
+											<Badge variant={'outline'}>
+												{member.role.role_name}
+											</Badge>
 											{#if isOwner}
-												<DropdownMenu.Root>
-													<DropdownMenu.Trigger>
-														{#snippet child({ props })}
-															<Button
-																{...props}
-																size="icon"
-																variant="ghost"
-																class="h-8 w-8 shrink-0 opacity-60 hover:opacity-100"
-															>
-																<RiMore2Fill class="h-4 w-4" />
-															</Button>
-														{/snippet}
-													</DropdownMenu.Trigger>
+												{#if member.user.id != currentUserStore.data?.id}
+													<DropdownMenu.Root>
+														<DropdownMenu.Trigger>
+															{#snippet child({ props })}
+																<Button
+																	{...props}
+																	size="icon"
+																	variant="ghost"
+																	class="h-8 w-8 shrink-0 opacity-60 hover:opacity-100"
+																>
+																	<RiMore2Fill class="h-4 w-4" />
+																</Button>
+															{/snippet}
+														</DropdownMenu.Trigger>
 
-													<DropdownMenu.Content align="end" class="w-40">
-														<!-- <DropdownMenu.Item
+														<DropdownMenu.Content align="end" class="w-40">
+															<!-- <DropdownMenu.Item
 															onclick={() => handleUpdateMember(member)}
 															class="cursor-pointer"
 														>
@@ -628,15 +879,16 @@
 															<span>Edit</span>
 														</DropdownMenu.Item> -->
 
-														<DropdownMenu.Item
-															onclick={() => handleDeleteMember(member)}
-															class="cursor-pointer text-destructive focus:text-destructive"
-														>
-															<RiDeleteBinLine class="mr-2 h-4 w-4" />
-															<span>Delete</span>
-														</DropdownMenu.Item>
-													</DropdownMenu.Content>
-												</DropdownMenu.Root>
+															<DropdownMenu.Item
+																onclick={() => handleDeleteMember(member)}
+																class="cursor-pointer text-destructive focus:text-destructive"
+															>
+																<RiDeleteBinLine class="mr-2 h-4 w-4" />
+																<span>Delete</span>
+															</DropdownMenu.Item>
+														</DropdownMenu.Content>
+													</DropdownMenu.Root>
+												{/if}
 											{/if}
 										</div>
 									</div>
@@ -729,9 +981,21 @@
 			</div>
 		</main>
 	{:else}
-		<div class="flex h-[50vh] flex-col items-center justify-center space-y-4">
-			<h2 class="text-2xl font-bold text-foreground">Project Not Found</h2>
-			<p class="text-muted-foreground">The project data could not be loaded or does not exist.</p>
+		<div class="flex h-[50vh] flex-col items-center justify-center gap-4 text-center">
+			<div class="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+				<RiShieldLine class="h-8 w-8 text-muted-foreground" />
+			</div>
+			<div class="space-y-1.5">
+				<h2 class="text-lg font-semibold text-foreground">Access Restricted</h2>
+				<p class="max-w-xs text-sm text-muted-foreground">
+					You are not a member of this project and cannot view its details.
+				</p>
+			</div>
+			<Separator class="max-w-xs" />
+			<Button variant="outline" size="sm" onclick={() => history.back()} class="gap-1.5">
+				<RiArrowLeftLine class="h-4 w-4" />
+				Go Back
+			</Button>
 		</div>
 	{/if}
 </div>
