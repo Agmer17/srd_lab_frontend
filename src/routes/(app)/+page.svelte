@@ -404,8 +404,8 @@
 		{:then res}
 			{@const dbReviews = res && res.reviews ? res.reviews.map((r: any) => ({
 				id: r.id,
-				user_name: r.user?.name || 'Customer',
-				user_initial: r.user?.name ? r.user.name.substring(0,2).toUpperCase() : 'CU',
+				user_name: r.user?.full_name || 'Customer',
+				user_initial: r.user?.full_name ? r.user.full_name.substring(0,2).toUpperCase() : 'CU',
 				company: 'Verified Buyer', // Since backend Review model doesn't store company
 				rating: r.rating,
 				comment: r.comment

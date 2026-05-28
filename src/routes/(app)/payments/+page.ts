@@ -1,14 +1,18 @@
 import type { PageLoad } from './$types';
 import type { Payment } from '$lib/types/payment';
 
-export const load: PageLoad = async ({ fetch }) => {
+export const load: PageLoad = async ({ fetch, parent }) => {
+	const parentData = await parent();
+	const isAdmin = parentData?.user?.global_role === 'ADMIN';
+
 	const loadHistory = async (): Promise<{ payments: Payment[]; error: string | null }> => {
 		try {
-			const res = await fetch('/api/payment/history');
+			const endpoint = isAdmin ? '/api/payment/all' : '/api/payment/history';
+			const res = await fetch(endpoint);
 			const result = await res.json();
 
-			if (!res.ok || !result.success) {
-				return { payments: [], error: result.error || 'Failed to load payment history' };
+			if (!res.ok || !result.data) {
+				return { payments: [], error: result.message || result.error || 'Failed to load payments' };
 			}
 
 			return { payments: result.data ?? [], error: null };
@@ -18,6 +22,7 @@ export const load: PageLoad = async ({ fetch }) => {
 	};
 
 	return {
-		historyPromise: loadHistory()
+		historyPromise: loadHistory(),
+		isAdmin
 	};
 };

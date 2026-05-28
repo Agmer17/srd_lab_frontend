@@ -6,10 +6,12 @@
 	import { goto } from '$app/navigation';
 	import { formatDate } from '$lib/api_utils';
 	import { formatPrice } from '$lib/string_utils';
+	import { RiCloseLine, RiCheckLine, RiCloseCircleLine } from 'remixicon-svelte';
 
 	let { data } = $props();
 
 	let searchQuery = $state('');
+	let selectedPayment = $state<Payment | null>(null);
 
 	// Real-time countdown — tick every second
 	let now = $state(Date.now());
@@ -39,6 +41,15 @@
 		return method.replace(/_va$/gi, '').replace(/_/g, ' ').toUpperCase() + ' VA';
 	}
 
+	function handleRowClick(payment: Payment) {
+		if (data.isAdmin) {
+			selectedPayment = payment;
+		} else {
+			const isCancelled = payment.status?.toLowerCase() === 'cancelled';
+			if (!isCancelled) goto(`/payments/detail/${payment.payment_id}`);
+		}
+	}
+
 	// Payment status → Badge variant + custom class (same pattern as OrderList)
 	const statusConfig: Record<string, string> = {
 		paid:      'bg-chart-4 text-white hover:bg-chart-4/80 border-transparent',
@@ -54,9 +65,11 @@
 		<!-- Header -->
 		<div class="flex flex-col gap-1">
 			<h1 class="font-sans text-2xl font-semibold tracking-tight text-foreground">
-				Payments
+				{data.isAdmin ? 'All Payments (Admin)' : 'Payments'}
 			</h1>
-			<p class="text-sm text-muted-foreground">View and manage your payment transactions.</p>
+			<p class="text-sm text-muted-foreground">
+				{data.isAdmin ? 'View and manage all payment transactions across the system.' : 'View and manage your payment transactions.'}
+			</p>
 		</div>
 
 		{#await data.historyPromise}
@@ -120,7 +133,9 @@
 							{#if filtered.length === 0}
 								<Table.Row>
 									<Table.Cell colspan={5} class="py-16 text-center text-sm text-muted-foreground">
-										{payments.length === 0 ? 'No payment transactions yet.' : 'No results match your search.'}
+										{payments.length === 0 
+											? (data.isAdmin ? 'No payment transactions found in the system.' : 'No payment transactions yet.') 
+											: 'No results match your search.'}
 									</Table.Cell>
 								</Table.Row>
 							{:else}
@@ -128,14 +143,11 @@
 									{@const secs = secondsLeft(payment.expired_at)}
 									{@const isUnpaid = payment.status?.toLowerCase() === 'unpaid'}
 									{@const badgeClass = statusConfig[payment.status?.toLowerCase()] ?? 'bg-secondary text-secondary-foreground border-transparent'}
-
 									{@const isCancelled = payment.status?.toLowerCase() === 'cancelled'}
 
 									<Table.Row
-										class="border-b border-border/60 transition-colors {isCancelled ? 'opacity-60 cursor-not-allowed bg-muted/20 hover:bg-muted/20' : 'cursor-pointer hover:bg-muted/40'}"
-										onclick={() => {
-											if (!isCancelled) goto(`/payments/detail/${payment.payment_id}`);
-										}}
+										class="border-b border-border/60 transition-colors {!data.isAdmin && isCancelled ? 'opacity-60 cursor-not-allowed bg-muted/20 hover:bg-muted/20' : 'cursor-pointer hover:bg-muted/40'}"
+										onclick={() => handleRowClick(payment)}
 									>
 										<!-- Payment ID -->
 										<Table.Cell class="py-3 pl-6 align-middle">
@@ -198,3 +210,77 @@
 		{/await}
 	</div>
 </div>
+
+<!-- Admin Detail Slide-Over Panel -->
+{#if data.isAdmin && selectedPayment}
+	<!-- Backdrop -->
+	<div
+		class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+		onclick={() => (selectedPayment = null)}
+	></div>
+
+	<!-- Panel -->
+	<div class="fixed right-0 top-0 z-50 h-full w-full max-w-md bg-card border-l border-border shadow-2xl flex flex-col overflow-y-auto">
+		<!-- Panel Header -->
+		<div class="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card z-10">
+			<div>
+				<h2 class="text-base font-semibold text-foreground">Payment Detail</h2>
+				<p class="text-xs text-muted-foreground font-mono mt-0.5">#{selectedPayment.payment_id.substring(0, 8).toUpperCase()}</p>
+			</div>
+			<button
+				onclick={() => (selectedPayment = null)}
+				class="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
+			>
+				<RiCloseLine class="h-4 w-4 text-muted-foreground" />
+			</button>
+		</div>
+
+		<!-- Status Banner -->
+		<div class="px-6 py-5 flex flex-col items-center border-b border-border">
+			{#if selectedPayment.status?.toLowerCase() === 'paid'}
+				<div class="w-14 h-14 rounded-full flex items-center justify-center mb-3 shadow-sm" style="background: oklch(0.70 0.15 162 / 0.15); color: var(--chart-4);">
+					<RiCheckLine class="h-7 w-7" />
+				</div>
+			{:else}
+				<div class="w-14 h-14 bg-destructive/10 text-destructive rounded-full flex items-center justify-center mb-3 shadow-sm">
+					<RiCloseCircleLine class="h-7 w-7" />
+				</div>
+			{/if}
+			<Badge
+				variant="outline"
+				class="px-3 py-1 text-xs font-bold tracking-wide uppercase {statusConfig[selectedPayment.status?.toLowerCase()] ?? 'bg-secondary text-secondary-foreground border-transparent'}"
+			>
+				{selectedPayment.status}
+			</Badge>
+		</div>
+
+		<!-- Detail Fields -->
+		<div class="px-6 py-5 flex flex-col gap-4">
+			{#each [
+				{ label: 'Payment ID', value: selectedPayment.payment_id },
+				{ label: 'Order ID', value: selectedPayment.order_id },
+				{ label: 'Method', value: getMethodLabel(selectedPayment.method) },
+				{ label: 'Amount', value: formatPrice(selectedPayment.amount) },
+				{ label: 'Fee', value: formatPrice(selectedPayment.fee ?? 0) },
+				{ label: 'Total', value: selectedPayment.total_payment ? formatPrice(selectedPayment.total_payment) : '—' },
+				{ label: 'Created', value: formatDate(selectedPayment.created_at) },
+				{ label: 'Expires', value: selectedPayment.expired_at ? formatDate(selectedPayment.expired_at) : '—' },
+				{ label: 'Paid At', value: selectedPayment.paid_at ? formatDate(selectedPayment.paid_at) : '—' },
+			] as field}
+				<div class="flex items-start justify-between gap-4">
+					<span class="text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0 min-w-[80px]">{field.label}</span>
+					<span class="text-sm font-mono text-foreground text-right break-all">{field.value}</span>
+				</div>
+			{/each}
+
+			{#if selectedPayment.payment_number}
+				<div class="flex flex-col gap-1.5 pt-2 border-t border-border">
+					<span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Payment Number / QR Data</span>
+					<div class="bg-secondary/40 rounded-lg p-3 text-xs font-mono text-foreground break-all leading-relaxed">
+						{selectedPayment.payment_number}
+					</div>
+				</div>
+			{/if}
+		</div>
+	</div>
+{/if}

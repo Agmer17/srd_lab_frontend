@@ -41,10 +41,10 @@ export const load: PageLoad = async ({ fetch }) => {
 
 	const loadReviews = async () => {
 		try {
-			const res = await fetch('/api/reviews/featured');
+			const res = await fetch('/api/reviews/featured?limit=4');
 			const result = await res.json();
-			if (!result.success || !result.data) {
-				return { reviews: [], error: String(result.error || 'No data') };
+			if (!result.data) {
+				return { reviews: [], error: String(result.message || 'No data') };
 			}
 			return { reviews: result.data, error: null };
 		} catch {

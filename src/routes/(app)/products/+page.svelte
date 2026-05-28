@@ -81,11 +81,36 @@
 		}).format(price);
 	};
 
-	// Dummy reviews as requested
-	const MOCK_REVIEWS = [
-		{ user: 'Budi Santoso', rating: 5, text: 'Pelayanan cepat dan hasilnya memuaskan!' },
-		{ user: 'Siti Rahma', rating: 4, text: 'Sangat bagus, sesuai dengan brief yang diberikan.' }
-	];
+	let productReviews = $state<any[]>([]);
+	let isLoadingReviews = $state(false);
+
+	$effect(() => {
+		if (selectedId) {
+			currentImageIndex = 0;
+			isLoadingReviews = true;
+			fetch(`/api/reviews/product/${selectedId}`)
+				.then(res => res.json())
+				.then(data => {
+					if (data.data) {
+						productReviews = data.data.map((r: any) => ({
+							id: r.id,
+							user_name: r.user?.full_name || 'Customer',
+							user_initial: r.user?.full_name ? r.user.full_name.substring(0, 2).toUpperCase() : 'CU',
+							rating: r.rating,
+							text: r.comment
+						}));
+					} else {
+						productReviews = [];
+					}
+				})
+				.catch(() => {
+					productReviews = [];
+				})
+				.finally(() => {
+					isLoadingReviews = false;
+				});
+		}
+	});
 
 	// Handle Order
 	let isOrdering = $state(false);
@@ -359,26 +384,45 @@
 						</ul>
 					</div> -->
 
-					<!-- Reviews (Mocked) -->
+					<!-- Reviews -->
 					<div class="space-y-4">
-						<h3 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground"> Reviews</h3>
-						{#each MOCK_REVIEWS.slice(0, 2) as review}
-							<div class="bg-secondary text-secondary-foreground p-4 rounded-xl border border-border/50 shadow-sm">
-								<div class="flex items-center justify-between mb-2">
-									<span class="font-medium text-sm">{review.user}</span>
-									<div class="flex gap-0.5 text-primary">
-										{#each Array(5) as _, i}
-											{#if i < review.rating}
-												<RiStarFill class="h-3 w-3" />
-											{:else}
-												<RiStarLine class="h-3 w-3" />
-											{/if}
-										{/each}
-									</div>
-								</div>
-								<p class="text-sm text-secondary-foreground/80">{review.text}</p>
+						<h3 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Reviews</h3>
+						
+						{#if isLoadingReviews}
+							<div class="space-y-3">
+								<Skeleton class="h-24 w-full rounded-xl" />
+								<Skeleton class="h-24 w-full rounded-xl" />
 							</div>
-						{/each}
+						{:else if productReviews.length > 0}
+							{#each productReviews as review (review.id)}
+								<div class="bg-secondary text-secondary-foreground p-4 rounded-xl border border-border/50 shadow-sm">
+									<div class="flex items-center justify-between mb-2">
+										<div class="flex items-center gap-2">
+											<div class="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold">
+												{review.user_initial}
+											</div>
+											<span class="font-medium text-sm">{review.user_name}</span>
+										</div>
+										<div class="flex gap-0.5 text-primary">
+											{#each Array(5) as _, i}
+												{#if i < review.rating}
+													<RiStarFill class="h-3 w-3" />
+												{:else}
+													<RiStarLine class="h-3 w-3" />
+												{/if}
+											{/each}
+										</div>
+									</div>
+									{#if review.text}
+										<p class="text-sm text-secondary-foreground/80">&ldquo;{review.text}&rdquo;</p>
+									{/if}
+								</div>
+							{/each}
+						{:else}
+							<div class="text-sm text-muted-foreground italic p-4 text-center border rounded-xl border-dashed">
+								No reviews available for this service.
+							</div>
+						{/if}
 					</div>
 				</div>
 

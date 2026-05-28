@@ -2,10 +2,11 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/public';
 
-export const GET: RequestHandler = async ({ fetch }) => {
+export const GET: RequestHandler = async ({ fetch, url }) => {
 	try {
 		const apiUrl = env.PUBLIC_API_URL || 'http://localhost:6969/api';
-		const res = await fetch(`${apiUrl}/reviews/featured`);
+		const limit = url.searchParams.get('limit') || '4';
+		const res = await fetch(`${apiUrl}/reviews/featured?limit=${limit}`);
 
 		if (!res.ok) {
 			console.error('Failed to fetch featured reviews:', res.status, res.statusText);
