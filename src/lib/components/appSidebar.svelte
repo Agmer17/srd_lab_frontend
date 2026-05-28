@@ -9,7 +9,8 @@
 		RiMessage2Line,
 		RiUserLine,
 		RiBarChartLine,
-		RiLogoutBoxRLine
+		RiLogoutBoxRLine,
+		RiStarLine
 	} from 'remixicon-svelte';
 	import { currentUserStore } from '$lib/state/currentUser.svelte';
 	import { page } from '$app/state';
@@ -37,7 +38,8 @@
 		{ title: 'Orders', url: '/orders', icon: RiFileListLine },
 		{ title: 'Payments', url: '/payments', icon: RiBankCardLine },
 		{ title: 'Projects', url: '/projects', icon: RiFolderLine },
-		{ title: 'chat', url: '/chat', icon: RiMessage2Line }
+		{ title: 'chat', url: '/chat', icon: RiMessage2Line },
+		{ title: 'Reviews', url: '/reviews', icon: RiStarLine }
 	];
 
 	const adminItems = [{ title: 'Users', url: '/user-management', icon: RiUserLine }];

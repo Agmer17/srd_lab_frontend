@@ -2,14 +2,24 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/public';
 
-export const GET: RequestHandler = async ({ fetch, params }) => {
+export const GET: RequestHandler = async ({ fetch, cookies, params }) => {
 	try {
 		const apiUrl = env.PUBLIC_API_URL || 'http://localhost:6969/api';
-		const res = await fetch(`${apiUrl}/reviews/product/${params.product_id}`);
+		const accessToken = cookies.get('access_token');
+
+		const res = await fetch(`${apiUrl}/reviews/product/${params.product_id}`, {
+			headers: {
+				...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+			}
+		});
 
 		if (!res.ok) {
-			console.error('Failed to fetch product reviews:', res.status, res.statusText);
-			return json({ success: false, error: 'Failed to fetch product reviews', data: null }, { status: res.status });
+			let errorMessage = 'Failed to fetch product reviews';
+			try {
+				const errData = await res.json();
+				errorMessage = errData.message || errData.error || errorMessage;
+			} catch (e) {}
+			return json({ success: false, error: errorMessage, data: null }, { status: res.status });
 		}
 
 		const data = await res.json();
