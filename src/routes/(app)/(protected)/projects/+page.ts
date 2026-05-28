@@ -18,7 +18,13 @@ export const load: PageLoad = async ({ fetch, parent }) => {
             }
 
         } else {
-
+            const res = await fetch("/api/projects/my-projects")
+            const apiResponse: ApiResponse<Project[]> = await res.json()
+            if (!apiResponse.success) {
+                return { projects: [] }
+            } else {
+                return { projects: apiResponse.data }
+            }
         }
 
     } catch (error) {
