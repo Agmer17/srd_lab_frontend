@@ -20,8 +20,8 @@
 	const CATEGORY_TILES = [
 		{
 			id: 'design',
-			label: 'Graphic Design',
-			sub: 'Logos, social media, packaging, presentations.',
+			label: 'Edit Desain Media Sosial',
+			sub: 'Desain feed, story, poster, dan aset grafis siap unggah.',
 			Icon: RiPenNibLine,
 			bg: 'var(--primary)',
 			fg: 'var(--primary-foreground)',
@@ -29,17 +29,17 @@
 		},
 		{
 			id: 'video',
-			label: 'Video Production',
-			sub: 'Company profiles, ads, event documentation.',
+			label: 'Edit Video Content',
+			sub: 'Rakitan footage jadi konten video dinamis dan interaktif.',
 			Icon: RiVideoLine,
 			bg: 'var(--secondary)',
 			fg: '#fff',
 			count: 3
 		},
 		{
-			id: 'branding',
-			label: 'Brand Identity',
-			sub: 'Full systems, guidelines, brand rollouts.',
+			id: 'bumper',
+			label: 'Edit Video Bumper',
+			sub: 'Animasi motion graphic untuk intro/outro brand premium.',
 			Icon: RiSparkling2Line,
 			bg: 'var(--accent)',
 			fg: '#fff',
@@ -145,10 +145,10 @@
 </script>
 
 <svelte:head>
-	<title>SPRDlab Creative — Design that ships. Video that sells.</title>
+	<title>SPRD Lab Creative — Bikin Konten Media Sosial & Video Makin Stand Out!</title>
 	<meta
 		name="description"
-		content="Indonesian creative agency for graphic design, video production, and brand identity. Browse our services, place an order, and track your project — all in one place."
+		content="Jasa edit desain media sosial, video konten, dan animasi bumper profesional. Pesan praktis, revisi terarah, dan bayar instan."
 	/>
 </svelte:head>
 
@@ -159,22 +159,22 @@
 		<div class="flex flex-col justify-center">
 			<div class="home-hero-eyebrow">
 				<span class="home-hero-eyebrow-dash"></span>
-				Creative Agency — Jakarta, Indonesia
+				SPRD Lab Creative — Jakarta, Indonesia
 			</div>
 
 			<h1 class="home-hero-h1">
-				Design that ships.<br />
-				<span class="home-hero-h1-accent">Video</span> that sells.
+				Bikin Konten Media Sosial<br />
+				dan <span class="home-hero-h1-accent">Video</span> Brand Kamu Makin Stand Out!
 			</h1>
 
-			<p class="home-hero-sub">
-				Browse our catalog, place an order, pay with QRIS, and track your project to delivery —
-				all in one place.
+			<p class="home-hero-sub"> 
+				Punya materi mentah tapi bingung ngeditnya? Serahkan urusan visual brand Anda pada ahlinya. 
+				Pesan jasanya cepat, revisi terarah, dan transaksi super praktis
 			</p>
 
 			<div class="home-hero-cta">
 				<button class="sprd-btn sprd-btn--default sprd-btn--lg" onclick={() => goto('/products')}>
-					Browse services <RiArrowRightLine class="inline-block h-5 w-5 ml-1" />
+					Pesan Sekarang <RiArrowRightLine class="inline-block h-5 w-5 ml-1" />
 				</button>
 				<button class="sprd-btn sprd-btn--outline sprd-btn--lg" onclick={() => goto('/auth')}>
 					Sign in
@@ -191,21 +191,21 @@
 			<div class="home-stat-grid">
 				<div>
 					<div class="home-stat-value home-stat-value--accent">120+</div>
-					<div class="home-stat-label">Projects delivered</div>
+					<div class="home-stat-label">Projects</div>
 				</div>
 				<div>
 					<div class="home-stat-value">98%</div>
-					<div class="home-stat-label">Client satisfaction</div>
+					<div class="home-stat-label">Kepuasan Pelanggan</div>
 				</div>
 				<div>
 					<div class="home-stat-value home-stat-value--accent">4.9</div>
-					<div class="home-stat-label">Average rating</div>
+					<div class="home-stat-label">Rata-Rata Rating</div>
 				</div>
 			</div>
 
 			<div class="home-panel-note">
 				<RiShieldCheckLine class="shrink-0 h-4 w-4 text-[var(--primary)]" />
-				QRIS · Bank transfer · E-wallet accepted
+				QRIS · Bank transfer
 			</div>
 		</div>
 	</section>
@@ -213,10 +213,10 @@
 	<!-- ══ WHAT WE CREATE ════════════════════════════════════════════ -->
 	<section class="home-section">
 		<div class="home-section-head">
-			<h2 class="home-section-title">What we create</h2>
-			<button class="sprd-btn sprd-btn--ghost sprd-btn--sm" onclick={() => goto('/products')}>
-				See all <RiArrowRightLine class="inline-block h-4 w-4 ml-1" />
-			</button>
+			<h2 class="home-section-title">Services</h2>
+			<!-- <button class="sprd-btn sprd-btn--ghost sprd-btn--sm" onclick={() => goto('/products')}>
+				Lihat Semua<RiArrowRightLine class="inline-block h-4 w-4 ml-1" />
+			</button> -->
 		</div>
 
 		<div class="home-cats">
@@ -230,21 +230,21 @@
 						<RiPenNibLine class="h-7 w-7" />
 					{:else if cat.id === 'video'}
 						<RiVideoLine class="h-7 w-7" />
-					{:else if cat.id === 'branding'}
+					{:else if cat.id === 'bumper'}
 						<RiSparkling2Line class="h-7 w-7" />
 					{/if}
 					<div>
 						<div class="home-cat-label">{cat.label}</div>
 						<div class="home-cat-sub">{cat.sub}</div>
 					</div>
-					<div class="home-cat-count">{cat.count} services available</div>
+					<div class="home-cat-count"></div>
 				</button>
 			{/each}
 		</div>
 	</section>
 
 	<!-- ══ RECENT WORK ═══════════════════════════════════════════════ -->
-	<section class="home-section">
+	<!-- <section class="home-section">
 		<div class="home-section-head">
 			<h2 class="home-section-title">Recent work</h2>
 			<span
@@ -287,14 +287,14 @@
 				</div>
 			{/each}
 		</div>
-	</section>
+	</section> -->
 
 	<!-- ══ FEATURED SERVICES ═════════════════════════════════════════ -->
 	<section class="home-section">
 		<div class="home-section-head">
-			<h2 class="home-section-title">Featured services</h2>
+			<h2 class="home-section-title">Favorite Services</h2>
 			<button class="sprd-btn sprd-btn--ghost sprd-btn--sm" onclick={() => goto('/products')}>
-				View all <RiArrowRightLine class="inline-block h-4 w-4 ml-1" />
+				Browse<RiArrowRightLine class="inline-block h-4 w-4 ml-1" />
 			</button>
 		</div>
 
@@ -373,13 +373,13 @@
 	<!-- ══ TESTIMONIALS ══════════════════════════════════════════════ -->
 	<section class="home-section">
 		<div class="home-section-head">
-			<h2 class="home-section-title">What clients say</h2>
+			<h2 class="home-section-title">Reviews</h2>
 			<span
 				class="inline-flex items-center gap-1 rounded-full px-3 py-0.5 text-[11px] font-medium"
 				style="background: oklch(0.70 0.15 162 / 0.12); color: var(--chart-4);"
 			>
 				<RiStarFill class="h-3 w-3" />
-				40+ verified reviews
+				40+ reviews
 			</span>
 		</div>
 
@@ -457,19 +457,12 @@
 	<!-- ══ CTA BANNER ════════════════════════════════════════════════ -->
 	<div class="home-cta-banner">
 		<div class="home-cta-text">
-			<h2>Ready to start your project?</h2>
-			<p>Pick a service, fill in your brief, and we kick off the same day.</p>
+			<h2>Siap Bikin Konten Kamu Makin Keren?</h2>
+			<p>Pilih layanan editing dan tim kreatif kami akan langsung mengeksekusinya.</p>
 		</div>
 		<div class="flex flex-wrap shrink-0 gap-2.5 mt-2 sm:mt-0 w-full sm:w-auto">
 			<button class="sprd-btn sprd-btn--default sprd-btn--lg" onclick={() => goto('/products')}>
-				Browse services <RiArrowRightLine class="inline-block h-5 w-5 ml-1" />
-			</button>
-			<button
-				class="sprd-btn sprd-btn--lg"
-				style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #fff;"
-				onclick={() => goto('/auth')}
-			>
-				Get started
+				Order Now <RiArrowRightLine class="inline-block h-5 w-5 ml-1" />
 			</button>
 		</div>
 	</div>

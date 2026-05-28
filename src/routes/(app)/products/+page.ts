@@ -29,10 +29,10 @@ export const load: PageLoad = async ({ fetch }) => {
 				categories = categoriesResult.data;
 			}
 
-			// Add images and categories to all products concurrently
-			const productsWithImagesAndCategories = await Promise.all(
+				const productsWithImagesAndCategories = await Promise.all(
 				products.map(async (product) => {
 					let imageUrl = null;
+					let images: string[] = [];
 					let productCategories: Category[] = [];
 
 					try {
@@ -45,9 +45,13 @@ export const load: PageLoad = async ({ fetch }) => {
 						const imgResult = await imgRes.json();
 						const catResult = await catRes.json();
 
-						if (imgResult.success && imgResult.data && imgResult.data.length > 0) {
-							const primary = imgResult.data.find((img: any) => img.is_primary) || imgResult.data[0];
-							imageUrl = primary.image_url;
+						if (imgResult.success && imgResult.data && Array.isArray(imgResult.data)) {
+							// Sort by sort_order
+							const sortedImages = imgResult.data.sort((a: any, b: any) => a.sort_order - b.sort_order);
+							if (sortedImages.length > 0) {
+								imageUrl = sortedImages[0].image_url;
+								images = sortedImages.map((img: any) => img.image_url);
+							}
 						}
 
 						if (catResult.success && catResult.data) {
@@ -56,7 +60,7 @@ export const load: PageLoad = async ({ fetch }) => {
 					} catch (e) {
 						// Fallback to defaults on error
 					}
-					return { ...product, imageUrl, categories: productCategories };
+					return { ...product, imageUrl, images, categories: productCategories };
 				})
 			);
 

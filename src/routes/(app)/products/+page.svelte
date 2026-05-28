@@ -11,6 +11,8 @@
 		RiShieldCheckFill,
 		RiArrowLeftLine,
 		RiArrowRightLine,
+		RiArrowLeftSLine,
+		RiArrowRightSLine,
 		RiCheckboxCircleLine,
 		RiRefreshLine
 	} from 'remixicon-svelte';
@@ -23,6 +25,53 @@
 	let selectedId = $state<string | null>(null);
 	let showAuthPopup = $state(false);
 	let showOrderConfirmModal = $state(false);
+
+	let currentImageIndex = $state(0);
+
+	function resolveImg(path: string): string {
+		if (!path) return '';
+		if (path.startsWith('http')) return path;
+		// path looks like /uploads/public/products/xxx.png
+		// proxy it via /api/uploads/public/products/xxx.png
+		return `/api${path}`;
+	}
+
+	function getProductImages(product: any) {
+		if (!product) return [];
+		if (product.images && product.images.length > 0) {
+			return product.images.map((img: string) => resolveImg(img));
+		}
+		if (product.imageUrl) return [resolveImg(product.imageUrl)];
+		return [];
+	}
+
+	$effect(() => {
+		if (selectedId) {
+			currentImageIndex = 0;
+		}
+	});
+
+	function autoPlay(node: HTMLElement, count: number) {
+		let interval: any;
+		if (count > 1) {
+			interval = setInterval(() => {
+				currentImageIndex = (currentImageIndex + 1) % count;
+			}, 3000);
+		}
+		return {
+			update(newCount: number) {
+				if (interval) clearInterval(interval);
+				if (newCount > 1) {
+					interval = setInterval(() => {
+						currentImageIndex = (currentImageIndex + 1) % newCount;
+					}, 3000);
+				}
+			},
+			destroy() {
+				if (interval) clearInterval(interval);
+			}
+		};
+	}
 
 	const formatPrice = (price: number) => {
 		return new Intl.NumberFormat('id-ID', {
@@ -119,9 +168,9 @@
 
 		<div class="products-page p-6 sm:p-8 w-full">
 			<div class="products-head mb-8">
-				<h1 class="products-h1 text-3xl font-semibold tracking-tight text-foreground mb-2">Service Catalog</h1>
+				<h1 class="products-h1 text-3xl font-semibold tracking-tight text-foreground mb-2">Services Catalogue</h1>
 				<p class="products-sub text-muted-foreground">
-					Pick a service, fill in the brief, pay with QRIS — we kick off the project the same day.
+					Pilih jasa editing yang Anda butuhkan dan Tim kami akan langsung mulai garap materi Anda hari ini juga
 				</p>
 			</div>
 
@@ -133,7 +182,7 @@
 						<input
 							type="text"
 							bind:value={search}
-							placeholder="Search services..."
+							placeholder="Find Service..."
 							class="w-full pl-9 pr-4 py-2 bg-secondary/50 border-none rounded-full text-sm outline-none focus:ring-2 focus:ring-ring"
 						/>
 					</div>
@@ -164,8 +213,8 @@
 			{#if filtered.length === 0}
 				<div class="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed py-24 text-muted-foreground" style="border-color: oklch(0.6 0 0 / .4);">
 					<RiSearchLine class="h-8 w-8 opacity-40 mb-2" />
-					<h3 class="font-medium text-foreground">No services match</h3>
-					<p class="text-sm">Try a different category or keyword.</p>
+					<h3 class="font-medium text-foreground">Service Not Found</h3>
+					<p class="text-sm">Find other category or other keyword</p>
 				</div>
 			{:else}
 				<div class="products-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -177,7 +226,7 @@
 							<div class="home-prod-thumb h-48 w-full shrink-0 relative flex items-center justify-center overflow-hidden" style={!p.imageUrl ? 'background: var(--secondary);' : ''}>
 								{#if p.imageUrl}
 									<img
-										src={p.imageUrl.startsWith('http') ? p.imageUrl : `http://localhost:6969${p.imageUrl}`}
+										src={resolveImg(p.imageUrl)}
 										alt={p.name}
 										class="h-full w-full object-cover transition-transform hover:scale-105"
 									/>
@@ -206,6 +255,8 @@
 
 		<!-- Slide-in Detail Panel -->
 		{#if selected}
+			{@const productImages = getProductImages(selected)}
+			
 			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div class="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 transition-opacity" onclick={() => selectedId = null}></div>
@@ -221,10 +272,53 @@
 				</div>
 				
 				<div class="flex-1 overflow-y-auto p-6 space-y-8">
-					<!-- Hero Image -->
-					<div class="w-full aspect-video rounded-xl overflow-hidden bg-secondary flex items-center justify-center">
-						{#if selected.imageUrl}
-							<img src={selected.imageUrl.startsWith('http') ? selected.imageUrl : `http://localhost:6969${selected.imageUrl}`} alt={selected.name} class="w-full h-full object-cover" />
+					<!-- Hero Image Carousel -->
+					<div class="w-full aspect-video rounded-xl overflow-hidden bg-secondary relative group flex items-center justify-center" use:autoPlay={productImages.length}>
+						{#if productImages.length > 0}
+							<!-- svelte-ignore a11y_img_redundant_alt -->
+							<img 
+								src={productImages[currentImageIndex]} 
+								alt="{selected.name} - view {currentImageIndex + 1}" 
+								class="w-full h-full object-cover transition-all duration-500" 
+							/>
+							
+							<!-- Carousel Controls -->
+							{#if productImages.length > 1}
+								<div class="absolute inset-0 flex items-center justify-between p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+									<button 
+										class="w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-foreground hover:bg-background transition-colors shadow-sm"
+										onclick={(e) => {
+											e.stopPropagation();
+											currentImageIndex = currentImageIndex === 0 ? productImages.length - 1 : currentImageIndex - 1;
+										}}
+									>
+										<RiArrowLeftSLine class="w-5 h-5" />
+									</button>
+									<button 
+										class="w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-foreground hover:bg-background transition-colors shadow-sm"
+										onclick={(e) => {
+											e.stopPropagation();
+											currentImageIndex = (currentImageIndex + 1) % productImages.length;
+										}}
+									>
+										<RiArrowRightSLine class="w-5 h-5" />
+									</button>
+								</div>
+								
+								<!-- Dots indicator -->
+								<div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+									{#each productImages as _, i}
+										<button 
+											class="w-1.5 h-1.5 rounded-full transition-all {i === currentImageIndex ? 'bg-white w-3' : 'bg-white/50 hover:bg-white/80'}"
+											onclick={(e) => {
+												e.stopPropagation();
+												currentImageIndex = i;
+											}}
+											aria-label="Go to image {i + 1}"
+										></button>
+									{/each}
+								</div>
+							{/if}
 						{:else}
 							<RiSparkling2Line class="h-12 w-12 text-white/50" />
 						{/if}
@@ -247,7 +341,7 @@
 					</div>
 
 					<!-- Highlights/Benefits -->
-					<div class="space-y-3">
+					<!-- <div class="space-y-3">
 						<h3 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground">What's included</h3>
 						<ul class="space-y-2">
 							<li class="flex items-start gap-2 text-sm">
@@ -263,11 +357,11 @@
 								<span>Fast turnaround time</span>
 							</li>
 						</ul>
-					</div>
+					</div> -->
 
 					<!-- Reviews (Mocked) -->
 					<div class="space-y-4">
-						<h3 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Recent Reviews</h3>
+						<h3 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground"> Reviews</h3>
 						{#each MOCK_REVIEWS.slice(0, 2) as review}
 							<div class="bg-secondary text-secondary-foreground p-4 rounded-xl border border-border/50 shadow-sm">
 								<div class="flex items-center justify-between mb-2">

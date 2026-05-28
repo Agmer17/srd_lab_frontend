@@ -9,5 +9,6 @@ export interface Product {
     created_at: string;
     updated_at: string;
     imageUrl?: string | null;
+    images?: string[];
     categories?: any[];
 }
