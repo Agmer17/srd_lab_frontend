@@ -94,7 +94,7 @@
 					/>
 				</div>
 
-				<div class="rounded-xl border border-border bg-card shadow-sm">
+				<div class="rounded-xl border border-border bg-card shadow-sm overflow-x-auto">
 					<Table.Root>
 						<Table.Header>
 							<Table.Row class="border-b border-border hover:bg-transparent">
@@ -129,9 +129,13 @@
 									{@const isUnpaid = payment.status?.toLowerCase() === 'unpaid'}
 									{@const badgeClass = statusConfig[payment.status?.toLowerCase()] ?? 'bg-secondary text-secondary-foreground border-transparent'}
 
+									{@const isCancelled = payment.status?.toLowerCase() === 'cancelled'}
+
 									<Table.Row
-										class="cursor-pointer border-b border-border/60 transition-colors hover:bg-muted/40"
-										onclick={() => goto(`/payments/detail/${payment.payment_id}`)}
+										class="border-b border-border/60 transition-colors {isCancelled ? 'opacity-60 cursor-not-allowed bg-muted/20 hover:bg-muted/20' : 'cursor-pointer hover:bg-muted/40'}"
+										onclick={() => {
+											if (!isCancelled) goto(`/payments/detail/${payment.payment_id}`);
+										}}
 									>
 										<!-- Payment ID -->
 										<Table.Cell class="py-3 pl-6 align-middle">

@@ -104,7 +104,6 @@
 	});
 </script>
 
-<Toaster position="top-right" toastOptions={{ unstyled: true }} />
 <Sidebar.Provider open={false}>
 	<AppSidebar />
 	<Sidebar.Inset class="flex h-screen flex-col bg-background">

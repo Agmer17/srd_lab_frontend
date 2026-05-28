@@ -138,31 +138,35 @@
 			{@const isSuccess = payment.status?.toLowerCase() === 'paid'}
 			{@const isFailed = ['cancelled', 'expired', 'failed'].includes(payment.status?.toLowerCase())}
 
-			<div class="max-w-md mx-auto p-6 sm:p-8">
-				<div class="bg-card rounded-3xl p-6 border shadow-xl relative overflow-hidden">
-					{#if isSuccess}
-						<div class="absolute inset-0 bg-background/95 flex flex-col items-center justify-center z-10 backdrop-blur-md">
-							<div class="w-16 h-16 bg-primary text-primary-foreground rounded-full flex items-center justify-center mb-4 shadow-lg shadow-primary/30">
-								<RiCheckLine class="h-8 w-8" />
+			{#if isSuccess || isFailed}
+				<!-- Full Page Modal for Final States -->
+				<div class="fixed inset-0 bg-background/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+					<div class="bg-card w-full max-w-sm rounded-3xl shadow-2xl border p-8 text-center flex flex-col items-center">
+						{#if isSuccess}
+							<div class="w-20 h-20 rounded-full flex items-center justify-center mb-6 shadow-sm" style="background: oklch(0.70 0.15 162 / 0.15); color: var(--chart-4);">
+								<RiCheckLine class="h-10 w-10" />
 							</div>
-							<h2 class="text-2xl font-bold tracking-tight text-foreground">Payment Successful</h2>
-							<p class="text-sm text-muted-foreground mt-2">Thank you for your order!</p>
-							<button class="sprd-btn sprd-btn--primary mt-6" onclick={() => goto('/products')}>Back to Products</button>
-						</div>
-					{/if}
-
-					{#if isFailed}
-						<div class="absolute inset-0 bg-background/95 flex flex-col items-center justify-center z-10 backdrop-blur-md">
-							<div class="w-16 h-16 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center mb-4 shadow-lg shadow-destructive/30">
-								<RiCloseCircleLine class="h-8 w-8" />
+							<h2 class="text-2xl font-bold tracking-tight text-foreground mb-2">Payment Successful</h2>
+							<p class="text-sm text-muted-foreground mb-8">Thank you for your order! Your payment has been verified.</p>
+							<button class="w-full py-3.5 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-colors text-[15px]" onclick={() => goto('/products')}>
+								Back to Products
+							</button>
+						{:else}
+							<div class="w-20 h-20 bg-destructive/10 text-destructive rounded-full flex items-center justify-center mb-6 shadow-sm">
+								<RiCloseCircleLine class="h-10 w-10" />
 							</div>
-							<h2 class="text-2xl font-bold tracking-tight text-foreground capitalize">Payment {payment.status}</h2>
-							<p class="text-sm text-muted-foreground mt-2">This transaction is no longer valid.</p>
-							<button class="sprd-btn sprd-btn--primary mt-6 px-8 rounded-full shadow-md hover:shadow-lg transition-all" onclick={() => goto('/products')}>Back to Products</button>
-						</div>
-					{/if}
-
-					<div class="text-center mb-6">
+							<h2 class="text-2xl font-bold tracking-tight text-foreground capitalize mb-2">Payment {payment.status}</h2>
+							<p class="text-sm text-muted-foreground mb-8">This transaction is no longer valid or has been cancelled.</p>
+							<button class="w-full py-3.5 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-colors text-[15px]" onclick={() => goto('/products')}>
+								Back to Products
+							</button>
+						{/if}
+					</div>
+				</div>
+			{:else}
+				<div class="max-w-md mx-auto p-4 sm:p-8">
+					<div class="bg-card rounded-3xl p-6 border shadow-xl relative overflow-hidden">
+						<div class="text-center mb-6">
 						<h1 class="text-xl font-bold tracking-tight mb-1">Total Payment</h1>
 						<div class="text-3xl font-bold text-primary">{formatPrice(payment.amount || payment.gross_amount)}</div>
 						<p class="text-xs text-muted-foreground mt-2">Order ID: {payment.order_id}</p>
@@ -232,24 +236,25 @@
 
 					<div class="flex flex-col gap-3">
 						<button 
-							class="sprd-btn sprd-btn--primary w-full py-3 flex items-center justify-center disabled:opacity-50"
+							class="w-full py-3.5 flex items-center justify-center font-bold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm transition-colors disabled:opacity-50 text-[15px]"
 							onclick={handleSync}
 							disabled={isSyncing || !isPending}
 						>
-							<RiRefreshLine class="h-4 w-4 mr-2 {isSyncing ? 'animate-spin' : ''}" />
+							<RiRefreshLine class="h-5 w-5 mr-2 {isSyncing ? 'animate-spin' : ''}" />
 							{isSyncing ? 'Checking...' : 'Check Payment Status'}
 						</button>
 						
 						<button 
-							class="sprd-btn sprd-btn--ghost w-full py-3 text-destructive hover:bg-destructive/10 disabled:opacity-50"
+							class="w-full py-3.5 flex items-center justify-center font-bold rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm transition-colors disabled:opacity-50 text-[15px]"
 							onclick={handleCancel}
 							disabled={isCanceling || !isPending}
 						>
 							Cancel Payment
 						</button>
 					</div>
+					</div>
 				</div>
-			</div>
+			{/if}
 		{/if}
 	{:catch error}
 		<div class="p-8 text-center text-destructive">
@@ -258,30 +263,27 @@
 	{/await}
 
 	{#if showCancelModal}
-		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-			<div class="bg-card rounded-2xl p-6 shadow-xl w-full max-w-sm border relative overflow-hidden">
-				<h3 class="text-xl font-bold mb-2 tracking-tight">Cancel Payment</h3>
-				<p class="text-sm text-muted-foreground mb-6 leading-relaxed">
-					Are you sure you want to cancel this payment? This action cannot be undone.
-				</p>
-				<div class="flex gap-3 justify-end">
-					<button 
-						class="sprd-btn sprd-btn--ghost py-2 px-4 bg-secondary/50 hover:bg-secondary" 
-						onclick={() => showCancelModal = false} 
-						disabled={isCanceling}
-					>
-						No, keep it
-					</button>
-					<button 
-						class="sprd-btn bg-destructive hover:bg-destructive/90 text-destructive-foreground py-2 px-4 flex items-center justify-center border-none" 
-						onclick={confirmCancel} 
-						disabled={isCanceling}
-					>
-						{#if isCanceling}
-							<RiRefreshLine class="h-4 w-4 mr-2 animate-spin" />
-						{/if}
-						Yes, Cancel
-					</button>
+		<div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity">
+			<div class="bg-card w-full max-w-sm rounded-3xl shadow-2xl border overflow-y-auto max-h-[90vh]" onclick={e => e.stopPropagation()}>
+				<div class="p-6 text-center">
+					<div class="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4 text-destructive shadow-sm">
+						<RiCloseCircleLine class="h-8 w-8" />
+					</div>
+					<h3 class="text-xl font-bold tracking-tight mb-2">Cancel Payment</h3>
+					<p class="text-sm text-muted-foreground mb-6 leading-relaxed">
+						Are you sure you want to cancel this payment? This action cannot be undone.
+					</p>
+					<div class="flex flex-col gap-2">
+						<button class="sprd-btn bg-destructive hover:bg-destructive/90 text-destructive-foreground w-full h-10 text-sm border-none flex items-center justify-center gap-2 shadow-sm transition-all" onclick={confirmCancel} disabled={isCanceling}>
+							{#if isCanceling}
+								<RiRefreshLine class="h-4 w-4 animate-spin" />
+							{/if}
+							Yes, Cancel Payment
+						</button>
+						<button class="sprd-btn sprd-btn--ghost w-full h-10 text-sm text-muted-foreground hover:bg-secondary/10" onclick={() => showCancelModal = false} disabled={isCanceling}>
+							No, keep it
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>

@@ -10,7 +10,9 @@
 		RiCloseLine,
 		RiShieldCheckFill,
 		RiArrowLeftLine,
-		RiArrowRightLine
+		RiArrowRightLine,
+		RiCheckboxCircleLine,
+		RiRefreshLine
 	} from 'remixicon-svelte';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 
@@ -20,6 +22,7 @@
 	let search = $state('');
 	let selectedId = $state<string | null>(null);
 	let showAuthPopup = $state(false);
+	let showOrderConfirmModal = $state(false);
 
 	const formatPrice = (price: number) => {
 		return new Intl.NumberFormat('id-ID', {
@@ -38,7 +41,7 @@
 	// Handle Order
 	let isOrdering = $state(false);
 
-	const handleOrder = async () => {
+	const handleOrderClick = () => {
 		const { user } = data;
 		if (!user) {
 			showAuthPopup = true;
@@ -46,6 +49,10 @@
 		}
 		
 		if (!selectedId) return;
+		showOrderConfirmModal = true;
+	};
+
+	const handleOrder = async () => {
 
 		isOrdering = true;
 		try {
@@ -65,11 +72,12 @@
 			toast.error('Network error while placing order.');
 		} finally {
 			isOrdering = false;
+			showOrderConfirmModal = false;
 		}
 	};
 </script>
 
-<div class="flex flex-col min-h-screen">
+<div class="flex flex-col h-full w-full overflow-y-auto pb-12">
 	<header class="h-[52px] px-6 flex items-center justify-between bg-background/85 backdrop-blur-md border-b sticky top-0 z-20 shrink-0">
 		<span class="text-sm font-medium text-muted-foreground tracking-tight">Products</span>
 		<div class="flex gap-1">
@@ -117,10 +125,10 @@
 				</p>
 			</div>
 
-			<div class="products-controls flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-				<div class="products-controls-left flex flex-col sm:flex-row gap-4 flex-1">
+			<div class="products-controls flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
+				<div class="products-controls-left flex flex-col sm:flex-row gap-4 flex-1 min-w-0">
 					<!-- Search Input -->
-					<div class="relative w-full sm:w-64">
+					<div class="relative w-full sm:w-64 shrink-0">
 						<RiSearchLine class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 						<input
 							type="text"
@@ -131,7 +139,7 @@
 					</div>
 					
 					<!-- Filter Tabs -->
-					<div class="flex items-center gap-1 bg-secondary/50 p-1 rounded-full overflow-x-auto">
+					<div class="flex items-center gap-1 bg-secondary/50 p-1 rounded-full overflow-x-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 						<button 
 							class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap {cat === 'all' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 							onclick={() => cat = 'all'}
@@ -202,7 +210,7 @@
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div class="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 transition-opacity" onclick={() => selectedId = null}></div>
 			
-			<div class="fixed inset-y-0 right-0 w-full max-w-md bg-card border-l shadow-2xl z-50 flex flex-col transform transition-transform duration-300">
+			<div class="fixed inset-y-0 right-0 w-full sm:max-w-md bg-card border-l shadow-2xl z-50 flex flex-col transform transition-transform duration-300">
 				<div class="flex items-center justify-between p-4 border-b">
 					<button class="sprd-btn sprd-btn--ghost sprd-btn--sm px-2 text-muted-foreground hover:text-foreground" onclick={() => selectedId = null}>
 						<RiArrowLeftLine class="h-5 w-5 mr-1" /> Back
@@ -228,7 +236,7 @@
 							<span class="text-xs font-bold tracking-wider uppercase text-primary bg-primary/10 px-2 py-1 rounded-md">
 								{selected.categories && selected.categories.length > 0 ? selected.categories[0].name : 'Service'}
 							</span>
-							<span class="flex items-center gap-1 text-xs font-medium text-muted-foreground bg-secondary px-2 py-1 rounded-md">
+							<span class="flex items-center gap-1 text-xs font-medium text-muted-foreground bg-secondary/20 px-2 py-1 rounded-md">
 								<RiStarFill class="h-3 w-3 text-primary" /> 4.8 (24 reviews)
 							</span>
 						</div>
@@ -243,15 +251,15 @@
 						<h3 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground">What's included</h3>
 						<ul class="space-y-2">
 							<li class="flex items-start gap-2 text-sm">
-								<RiShieldCheckFill class="h-5 w-5 text-green-500 shrink-0" />
+								<RiShieldCheckFill class="h-5 w-5 shrink-0" style="color: var(--chart-4);" />
 								<span>Professional quality guarantee</span>
 							</li>
 							<li class="flex items-start gap-2 text-sm">
-								<RiShieldCheckFill class="h-5 w-5 text-green-500 shrink-0" />
+								<RiShieldCheckFill class="h-5 w-5 shrink-0" style="color: var(--chart-4);" />
 								<span>Dedicated project manager</span>
 							</li>
 							<li class="flex items-start gap-2 text-sm">
-								<RiShieldCheckFill class="h-5 w-5 text-green-500 shrink-0" />
+								<RiShieldCheckFill class="h-5 w-5 shrink-0" style="color: var(--chart-4);" />
 								<span>Fast turnaround time</span>
 							</li>
 						</ul>
@@ -260,8 +268,8 @@
 					<!-- Reviews (Mocked) -->
 					<div class="space-y-4">
 						<h3 class="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Recent Reviews</h3>
-						{#each MOCK_REVIEWS as review}
-							<div class="bg-secondary/30 p-4 rounded-xl border border-border/50">
+						{#each MOCK_REVIEWS.slice(0, 2) as review}
+							<div class="bg-secondary text-secondary-foreground p-4 rounded-xl border border-border/50 shadow-sm">
 								<div class="flex items-center justify-between mb-2">
 									<span class="font-medium text-sm">{review.user}</span>
 									<div class="flex gap-0.5 text-primary">
@@ -274,7 +282,7 @@
 										{/each}
 									</div>
 								</div>
-								<p class="text-sm text-muted-foreground">{review.text}</p>
+								<p class="text-sm text-secondary-foreground/80">{review.text}</p>
 							</div>
 						{/each}
 					</div>
@@ -284,14 +292,14 @@
 				<div class="p-4 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60 mt-auto">
 					<div class="flex items-center justify-between mb-4">
 						<span class="text-sm font-medium text-muted-foreground">Total price</span>
-						<span class="text-2xl font-bold">{formatPrice(selected.price)}</span>
+						<span class="text-2xl font-bold font-mono">{formatPrice(selected.price)}</span>
 					</div>
 					<button 
-						class="sprd-btn sprd-btn--primary w-full py-6 flex justify-center items-center text-base disabled:opacity-50" 
-						onclick={handleOrder}
+						class="w-full py-4 rounded-xl flex justify-center items-center text-lg font-bold bg-primary text-primary-foreground shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none" 
+						onclick={handleOrderClick}
 						disabled={isOrdering}
 					>
-						{isOrdering ? 'Processing...' : 'Order now'} <RiArrowRightLine class="h-5 w-5 ml-2" />
+						{isOrdering ? 'Processing...' : 'Order now'} <RiArrowRightLine class="h-6 w-6 ml-2" />
 					</button>
 					<p class="text-[11px] text-center text-muted-foreground mt-3 font-medium">Secure payment with QRIS / Virtual Account</p>
 				</div>
@@ -322,6 +330,36 @@
 							Go to Login
 						</button>
 						<button class="sprd-btn sprd-btn--ghost w-full py-2.5 text-sm text-muted-foreground hover:text-foreground" onclick={() => showAuthPopup = false}>
+							Cancel
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Order Confirmation Modal -->
+	{#if showOrderConfirmModal}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 transition-opacity" onclick={() => showOrderConfirmModal = false}>
+			<div class="bg-card w-full max-w-sm rounded-3xl shadow-2xl border overflow-y-auto max-h-[90vh]" onclick={e => e.stopPropagation()}>
+				<div class="p-6 text-center">
+					<div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm" style="background: oklch(0.70 0.15 162 / 0.15); color: var(--chart-4);">
+						<RiCheckboxCircleLine class="h-8 w-8" />
+					</div>
+					<h3 class="text-xl font-bold tracking-tight mb-2">Confirm Order</h3>
+					<p class="text-sm text-muted-foreground mb-6 leading-relaxed">
+						Are you sure you want to order this service? You will be directed to the payment page.
+					</p>
+					<div class="flex flex-col gap-2">
+						<button class="sprd-btn bg-secondary hover:bg-secondary/90 text-secondary-foreground w-full h-10 text-sm border-none flex items-center justify-center gap-2 shadow-sm transition-all" onclick={handleOrder} disabled={isOrdering}>
+							{#if isOrdering}
+								<RiRefreshLine class="h-4 w-4 animate-spin" />
+							{/if}
+							Yes, Confirm Order
+						</button>
+						<button class="sprd-btn sprd-btn--ghost w-full h-10 text-sm text-muted-foreground hover:bg-secondary/10" onclick={() => showOrderConfirmModal = false} disabled={isOrdering}>
 							Cancel
 						</button>
 					</div>
