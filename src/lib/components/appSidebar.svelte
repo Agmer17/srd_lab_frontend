@@ -10,7 +10,8 @@
 		RiUserLine,
 		RiBarChartLine,
 		RiLogoutBoxRLine,
-		RiStarLine
+		RiStarLine,
+		RiShoppingBagLine
 	} from 'remixicon-svelte';
 	import { currentUserStore } from '$lib/state/currentUser.svelte';
 	import { page } from '$app/state';
@@ -42,9 +43,16 @@
 		{ title: 'Reviews', url: '/reviews', icon: RiStarLine }
 	];
 
-	const adminItems = [{ title: 'Users', url: '/user-management', icon: RiUserLine }];
+	const adminItems = [
+		{ title: 'Users', url: '/user-management', icon: RiUserLine },
+		{ title: 'Products', url: '/admin/products', icon: RiShoppingBagLine }
+	];
 
 	function isActive(url: string) {
+		// For /admin/products, also match sub-routes like /admin/products/create, /admin/products/:id
+		if (url === '/admin/products') {
+			return page.url.pathname.startsWith('/admin/products');
+		}
 		return page.url.pathname === url;
 	}
 

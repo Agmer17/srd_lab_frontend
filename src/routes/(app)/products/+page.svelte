@@ -185,6 +185,7 @@
 		{@const allProducts = res.products || []}
 		{@const allCategories = res.categories || []}
 		{@const filtered = allProducts.filter(p => {
+			if (p.status !== 'active') return false;
 			const matchCat = cat === 'all' || (p.categories && p.categories.some(c => c.slug === cat));
 			const matchQ = !search || p.name.toLowerCase().includes(search.toLowerCase()) || (p.description && p.description.toLowerCase().includes(search.toLowerCase()));
 			return matchCat && matchQ;

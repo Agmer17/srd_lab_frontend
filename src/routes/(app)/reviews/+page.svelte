@@ -83,7 +83,7 @@
 
 	// --- Admin Functions ---
 	async function toggleVisibility(reviewId: string, currentStatus: boolean) {
-		isToggling[reviewId] = true;
+		isToggling = { ...isToggling, [reviewId]: true };
 		try {
 			const res = await fetch(`/api/reviews/show-status/${reviewId}`, {
 				method: 'PATCH',
@@ -97,16 +97,18 @@
 				return;
 			}
 
-			// Update local state
+			// Update local state with deep copy to guarantee Svelte 5 reactivity
 			const index = adminReviews.findIndex(r => r.id === reviewId);
 			if (index !== -1) {
-				adminReviews[index] = { ...adminReviews[index], show: !currentStatus };
+				const newReviews = [...adminReviews];
+				newReviews[index] = { ...newReviews[index], show: !currentStatus };
+				adminReviews = newReviews;
 			}
 			toast.success(`Review is now ${!currentStatus ? 'visible' : 'hidden'}`);
 		} catch (e) {
 			toast.error('Network error. Please try again.');
 		} finally {
-			isToggling[reviewId] = false;
+			isToggling = { ...isToggling, [reviewId]: false };
 		}
 	}
 </script>
@@ -141,7 +143,54 @@
 								No reviews found for any product.
 							</div>
 						{:else}
-							<div class="overflow-x-auto">
+							<!-- Mobile View (Cards) -->
+							<div class="block md:hidden divide-y divide-border/60">
+								{#each adminReviews as review}
+									<div class="p-4 transition-colors hover:bg-muted/30 {review.show ? '' : 'opacity-60'} flex flex-col gap-3">
+										<div class="flex justify-between items-start">
+											<div>
+												<div class="font-medium text-foreground">{review.user_name}</div>
+												<div class="text-xs text-muted-foreground mt-0.5">{formatDate(review.created_at)}</div>
+											</div>
+											<span class="inline-flex items-center rounded-md bg-secondary/10 px-2 py-1 text-[10px] font-medium text-secondary max-w-[120px] truncate">
+												{review.productName}
+											</span>
+										</div>
+										<div>
+											<div class="flex gap-0.5 text-primary mb-1.5">
+												{#each Array(5) as _, i}
+													{#if i < review.rating}
+														<RiStarFill class="h-3.5 w-3.5" />
+													{:else}
+														<RiStarLine class="h-3.5 w-3.5 opacity-30" />
+													{/if}
+												{/each}
+											</div>
+											<p class="text-sm text-muted-foreground leading-relaxed">{review.comment}</p>
+										</div>
+										<div class="mt-2 flex justify-end">
+											<button
+												class="sprd-btn {review.show ? 'sprd-btn--outline' : 'sprd-btn--secondary'} sprd-btn--sm w-full sm:w-auto"
+												onclick={() => toggleVisibility(review.id, review.show)}
+												disabled={isToggling[review.id]}
+											>
+												{#if isToggling[review.id]}
+													<RiLoader4Line class="h-4 w-4 animate-spin" />
+												{:else}
+													{#if review.show}
+														<RiEyeOffLine class="h-4 w-4" /> Hide
+													{:else}
+														<RiEyeLine class="h-4 w-4" /> Show
+													{/if}
+												{/if}
+											</button>
+										</div>
+									</div>
+								{/each}
+							</div>
+
+							<!-- Desktop View (Table) -->
+							<div class="hidden md:block overflow-x-auto">
 								<table class="w-full text-left text-sm">
 									<thead class="border-b bg-muted/20">
 										<tr>
@@ -185,9 +234,9 @@
 															<RiLoader4Line class="h-4 w-4 animate-spin" />
 														{:else}
 															{#if review.show}
-																<RiEyeOffLine class="h-4 w-4 mr-1.5" /> Hide
+																<RiEyeOffLine class="h-4 w-4" /> Hide
 															{:else}
-																<RiEyeLine class="h-4 w-4 mr-1.5" /> Show
+																<RiEyeLine class="h-4 w-4" /> Show
 															{/if}
 														{/if}
 													</button>

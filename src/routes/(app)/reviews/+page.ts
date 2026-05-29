@@ -6,26 +6,20 @@ export const load: PageLoad = async ({ fetch, parent }) => {
 
 	if (isAdmin) {
 		const fetchAdminReviews = async () => {
-			const productsRes = await fetch('/api/products');
-			const productsResult = await productsRes.json();
-			if (!productsResult.success) {
-				return { error: productsResult.error || 'Failed to fetch products' };
+			const res = await fetch('/api/reviews/admin/all');
+			const result = await res.json();
+			
+			if (!result.success && !result.data) {
+				return { error: result.error || result.message || 'Failed to fetch reviews' };
 			}
-			const products = productsResult.data || [];
 			
-			const reviewPromises = products.map((p: any) => 
-				fetch(`/api/reviews/product/${p.id}`).then(r => r.json())
-			);
-			
-			const reviewResults = await Promise.all(reviewPromises);
-			let allReviews: any[] = [];
-			reviewResults.forEach((res, index) => {
-				if (res.data) {
-					// Add product info to the review for context in UI
-					const prodReviews = res.data.map((r: any) => ({ ...r, productName: products[index].name, productId: products[index].id }));
-					allReviews = [...allReviews, ...prodReviews];
-				}
-			});
+			// The backend now returns reviews with populated User and Product
+			const allReviews = (result.data || []).map((r: any) => ({
+				...r,
+				productName: r.Product?.name || 'Unknown Product',
+				productId: r.Product?.id,
+				user_name: r.User?.full_name || 'Anonymous'
+			}));
 			
 			return { reviews: allReviews };
 		};

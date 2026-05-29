@@ -328,7 +328,7 @@
 					<p class="text-sm">Services coming soon.</p>
 				</div>
 			{:else}
-				{@const featured = res.products.slice(0, 3)}
+				{@const featured = res.products.filter(p => p.is_featured && p.status === 'active').slice(0, 3)}
 				<div class="home-products-grid">
 					{#each featured as product (product.id)}
 						<button
