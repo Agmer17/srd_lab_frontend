@@ -16,9 +16,9 @@ export const load: PageLoad = async ({ fetch, parent }) => {
 			// The backend now returns reviews with populated User and Product
 			const allReviews = (result.data || []).map((r: any) => ({
 				...r,
-				productName: r.Product?.name || 'Unknown Product',
-				productId: r.Product?.id,
-				user_name: r.User?.full_name || 'Anonymous'
+				productName: r.product?.name || 'Unknown Product',
+				productId: r.product?.id,
+				user_name: r.user?.full_name || 'Anonymous'
 			}));
 			
 			return { reviews: allReviews };

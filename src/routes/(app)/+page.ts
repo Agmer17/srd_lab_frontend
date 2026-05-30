@@ -15,7 +15,9 @@ export const load: PageLoad = async ({ fetch }) => {
 				return { products: [], error: 'No data returned' };
 			}
 			
-			const featured = result.data.slice(0, 3);
+			const featured = result.data
+				.filter((p) => p.is_featured && p.status === 'active')
+				.slice(0, 3);
 			
 			const productsWithImages = await Promise.all(
 				featured.map(async (product) => {
