@@ -131,7 +131,7 @@
 
 <Toaster richColors theme={themeData.value} position="top-right" />
 
-<div class="flex animate-in flex-col gap-0 duration-500 fade-in h-full overflow-y-auto">
+<div class="flex flex-1 min-h-0 animate-in flex-col gap-0 duration-500 fade-in w-full overflow-y-auto">
 
 	<!-- ── Sticky Header ── -->
 	<header class="h-[52px] px-4 md:px-6 flex items-center justify-between bg-background/85 backdrop-blur-md border-b sticky top-0 z-20 shrink-0">

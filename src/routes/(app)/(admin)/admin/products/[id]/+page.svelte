@@ -42,6 +42,14 @@
 		created_at: string;
 	}
 
+	interface UnifiedImage {
+		localId: string;
+		isExisting: boolean;
+		imageId?: string;
+		file?: File;
+		url: string;
+	}
+
 	const { data } = $props();
 
 	$effect(() => {
@@ -76,18 +84,16 @@
 	let formInitialized = $state(false);
 
 	// Images state
-	let images = $state<ProductImage[]>([]);
+	let images = $state<UnifiedImage[]>([]);
+	let deletedImageIds = $state<string[]>([]);
 	let imagesLoaded = $state(false);
 
 	// Delete image dialog
 	let deleteImageOpen = $state(false);
 	let targetImageId = $state<string | null>(null);
-	let isDeletingImage = $state(false);
 
 	// Upload state
 	let fileInput: HTMLInputElement;
-	let isUploading = $state(false);
-	let uploadPreview = $state<{ name: string; size: number }[]>([]);
 
 	function slugify(val: string) {
 		return val
@@ -117,7 +123,13 @@
 			is_featured: product.is_featured ?? false
 		};
 		selectedCategoryIds = assignedCategories.map((c) => c.id);
-		images = [...loadedImages].sort((a, b) => a.sort_order - b.sort_order);
+		images = [...loadedImages].sort((a, b) => a.sort_order - b.sort_order).map(img => ({
+			localId: img.id,
+			isExisting: true,
+			imageId: img.id,
+			url: img.image_url
+		}));
+		deletedImageIds = [];
 		imagesLoaded = true;
 		formInitialized = true;
 	}
@@ -167,10 +179,10 @@
 			const toAdd = selectedCategoryIds.filter((id) => !originalIds.has(id));
 			const toRemove = [...originalIds].filter((id) => !newIds.has(id));
 
-			const catTasks: Promise<Response>[] = [];
+			const tasks: Promise<Response>[] = [];
 
 			if (toAdd.length > 0) {
-				catTasks.push(
+				tasks.push(
 					fetch(`/api/products/categories/assign/${product.id}`, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
@@ -180,14 +192,54 @@
 			}
 
 			for (const catId of toRemove) {
-				catTasks.push(
-					fetch(`/api/products/categories/remove/${product.id}/${catId}`, {
-						method: 'DELETE'
-					})
-				);
+				tasks.push(fetch(`/api/products/categories/remove/${product.id}/${catId}`, { method: 'DELETE' }));
 			}
 
-			await Promise.all(catTasks);
+			// Delete queued images
+			for (const id of deletedImageIds) {
+				tasks.push(fetch(`/api/products/images/delete/${id}`, { method: 'DELETE' }));
+			}
+
+			await Promise.all(tasks);
+
+			// Upload new images
+			const newImages = images.filter(img => !img.isExisting);
+			if (newImages.length > 0) {
+				const formData = new FormData();
+				for (const img of newImages) {
+					formData.append('images', img.file!);
+				}
+				const uploadRes = await fetch(`/api/products/images/add/${product.id}`, {
+					method: 'POST',
+					body: formData
+				});
+				const uploadJson = await uploadRes.json();
+				if (uploadJson.success && uploadJson.data) {
+					const createdImages = uploadJson.data as ProductImage[];
+					let cIdx = 0;
+					for (const img of images) {
+						if (!img.isExisting && createdImages[cIdx]) {
+							img.imageId = createdImages[cIdx].id;
+							img.isExisting = true;
+							cIdx++;
+						}
+					}
+				}
+			}
+
+			// Update image order
+			const validOrderImages = images.filter(img => img.imageId);
+			if (validOrderImages.length > 0) {
+				const orderPayload = validOrderImages.map((img, i) => ({
+					image_id: img.imageId,
+					sort_order: i
+				}));
+				await fetch(`/api/products/images/order/${product.id}`, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(orderPayload)
+				});
+			}
 
 			toast.success('Product updated successfully!', { duration: 2000 });
 			await invalidateAll();
@@ -200,85 +252,42 @@
 	}
 
 	// ─── Image Upload ─────────────────────────────────────────────────────────────
-	async function handleUpload(productId: string) {
-		const files = fileInput?.files;
-		if (!files || files.length === 0) {
-			toast.error('Please select at least one image.');
-			return;
-		}
-
-		isUploading = true;
-		try {
-			const formData = new FormData();
-			for (const file of files) {
-				formData.append('images', file);
-			}
-
-			const res = await fetch(`/api/products/images/add/${productId}`, {
-				method: 'POST',
-				body: formData
-			});
-
-			const json = await res.json();
-
-			if (!json.success) {
-				toast.error(parseError(json.error), { duration: 3000 });
-				return;
-			}
-
-			toast.success('Image(s) uploaded successfully!', { duration: 2000 });
-			uploadPreview = [];
-			fileInput.value = '';
-
-			// Refresh images
-			await refreshImages(productId);
-		} catch {
-			toast.error('Network error during upload.');
-		} finally {
-			isUploading = false;
-		}
-	}
-
-	async function refreshImages(productId: string) {
-		try {
-			const res = await fetch(`/api/products/images/all/${productId}`);
-			const json = await res.json();
-			images = ([...(json?.data ?? [])] as ProductImage[]).sort((a, b) => a.sort_order - b.sort_order);
-		} catch {
-			// silently fail
-		}
-	}
-
 	function onFilesSelected() {
 		const files = fileInput?.files;
 		if (!files) return;
-		uploadPreview = Array.from(files).map((f) => ({ name: f.name, size: f.size }));
+		
+		const newImages = Array.from(files).map((file, i) => ({
+			localId: `new-${Date.now()}-${i}`,
+			isExisting: false,
+			file,
+			url: URL.createObjectURL(file)
+		}));
+		
+		images = [...images, ...newImages];
+		fileInput.value = '';
+		toast.info('Image(s) queued. Save changes to apply.', { duration: 2500 });
 	}
 
 	// ─── Delete Image ─────────────────────────────────────────────────────────────
-	function openDeleteImage(imageId: string) {
-		targetImageId = imageId;
+	function openDeleteImage(localId: string) {
+		targetImageId = localId;
 		deleteImageOpen = true;
 	}
 
-	async function confirmDeleteImage(productId: string) {
+	function confirmDeleteImage() {
 		if (!targetImageId) return;
-		isDeletingImage = true;
-		try {
-			const res = await fetch(`/api/products/images/delete/${targetImageId}`, { method: 'DELETE' });
-			const json = await res.json();
-			if (!json.success) {
-				toast.error(parseError(json.error), { duration: 2000 });
-				return;
-			}
-			toast.success('Image deleted', { duration: 1500 });
-			deleteImageOpen = false;
-			targetImageId = null;
-			await refreshImages(productId);
-		} catch {
-			toast.error('Network error');
-		} finally {
-			isDeletingImage = false;
+		
+		const img = images.find(img => img.localId === targetImageId);
+		if (img?.isExisting && img.imageId) {
+			deletedImageIds.push(img.imageId);
+		}
+		
+		images = images.filter(img => img.localId !== targetImageId);
+		deleteImageOpen = false;
+		targetImageId = null;
+		
+		if (img?.url && !img.isExisting) {
+			URL.revokeObjectURL(img.url);
 		}
 	}
 
@@ -290,37 +299,13 @@
 		[newImages[index], newImages[targetIndex]] = [newImages[targetIndex], newImages[index]];
 		images = newImages;
 	}
-
-	async function saveImageOrder(productId: string) {
-		const payload = images.map((img, i) => ({
-			image_id: img.id,
-			sort_order: i
-		}));
-
-		try {
-			const res = await fetch(`/api/products/images/order/${productId}`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(payload)
-			});
-			const json = await res.json();
-			if (!json.success) {
-				toast.error(parseError(json.error), { duration: 2000 });
-				return;
-			}
-			toast.success('Image order saved!', { duration: 1500 });
-			await refreshImages(productId);
-		} catch {
-			toast.error('Network error');
-		}
-	}
 </script>
 
 <Toaster richColors theme={themeData.value} position="top-right" />
 
 {#await data.dataPromise}
 	<!-- Loading state -->
-	<div class="flex flex-col gap-0 h-full overflow-y-auto">
+	<div class="flex flex-1 min-h-0 flex-col gap-0 w-full overflow-y-auto">
 		<header class="h-[52px] px-4 md:px-6 flex items-center gap-3 bg-background/85 backdrop-blur-md border-b sticky top-0 z-20 shrink-0">
 			<Skeleton class="h-9 w-9 rounded-lg" />
 			<Skeleton class="h-4 w-40" />
@@ -343,7 +328,7 @@
 		{@const allCategories = res.allCategories}
 		{@const assignedCategories = res.assignedCategories}
 
-		<div class="flex animate-in flex-col gap-0 duration-500 fade-in h-full overflow-y-auto">
+		<div class="flex flex-1 min-h-0 animate-in flex-col gap-0 duration-500 fade-in w-full overflow-y-auto">
 
 			<!-- ── Sticky Header ── -->
 			<header class="h-[52px] px-4 md:px-6 flex items-center justify-between bg-background/85 backdrop-blur-md border-b sticky top-0 z-20 shrink-0">
@@ -481,14 +466,6 @@
 							<span class="w-1 h-4 rounded-full bg-primary inline-block"></span>
 							Product Images
 						</h2>
-						{#if images.length > 1}
-							<button
-								class="sprd-btn sprd-btn--outline sprd-btn--sm flex items-center gap-1.5 text-xs"
-								onclick={() => saveImageOrder(product.id)}
-							>
-								<RiCheckLine class="h-3.5 w-3.5" /> Save Order
-							</button>
-						{/if}
 					</div>
 
 					<!-- Image Grid -->
@@ -500,15 +477,15 @@
 						</div>
 					{:else}
 						<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-5">
-							{#each images as img, i (img.id)}
+							{#each images as img, i (img.localId)}
 								<div class="relative group rounded-xl overflow-hidden border border-border bg-muted aspect-square">
 									<img
-										src={imgUrl(img.image_url)}
+										src={img.isExisting ? imgUrl(img.url) : img.url}
 										alt="Product image {i + 1}"
 										class="w-full h-full object-cover"
 									/>
 									<!-- Primary badge -->
-									{#if img.is_primary}
+									{#if i === 0}
 										<div class="absolute top-2 left-2">
 											<span class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
 												<RiCheckboxCircleLine class="h-3 w-3" /> Primary
@@ -541,7 +518,7 @@
 										</div>
 										<button
 											class="h-8 w-8 rounded-lg bg-destructive/80 hover:bg-destructive text-white flex items-center justify-center transition-colors border-none cursor-pointer"
-											onclick={() => openDeleteImage(img.id)}
+											onclick={() => openDeleteImage(img.localId)}
 											title="Delete image"
 										>
 											<RiDeleteBin7Line class="h-4 w-4" />
@@ -550,9 +527,6 @@
 								</div>
 							{/each}
 						</div>
-						{#if images.length > 1}
-							<p class="text-[11px] text-muted-foreground mb-4">Hover over an image to reorder or delete. Click <strong>Save Order</strong> when done.</p>
-						{/if}
 					{/if}
 
 					<!-- Upload Area -->
@@ -564,15 +538,6 @@
 							<div class="flex-1 min-w-0">
 								<p class="text-sm font-medium text-foreground">Upload Images</p>
 								<p class="text-xs text-muted-foreground">Select multiple files at once. Supported: JPG, PNG, WebP.</p>
-								{#if uploadPreview.length > 0}
-									<div class="mt-2 flex flex-wrap gap-1.5">
-										{#each uploadPreview as f}
-											<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-medium">
-												{f.name}
-											</span>
-										{/each}
-									</div>
-								{/if}
 							</div>
 							<div class="flex gap-2 shrink-0 sm:w-auto w-full justify-end">
 								<label
@@ -581,21 +546,6 @@
 								>
 									Browse
 								</label>
-								{#if uploadPreview.length > 0}
-									<button
-										class="sprd-btn sprd-btn--default sprd-btn--sm flex items-center gap-1.5"
-										onclick={() => handleUpload(product.id)}
-										disabled={isUploading}
-									>
-										{#if isUploading}
-											<RiLoader4Line class="h-3.5 w-3.5 animate-spin" />
-											Uploading...
-										{:else}
-											<RiUploadCloud2Line class="h-3.5 w-3.5" />
-											Upload
-										{/if}
-									</button>
-								{/if}
 							</div>
 						</div>
 						<input
@@ -626,10 +576,8 @@
 					<AlertDialogCancel onclick={() => (deleteImageOpen = false)}>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						class="bg-destructive text-white hover:bg-destructive/90 flex items-center gap-2"
-						onclick={() => confirmDeleteImage(product.id)}
-						disabled={isDeletingImage}
+						onclick={confirmDeleteImage}
 					>
-						{#if isDeletingImage}<RiLoader4Line class="h-4 w-4 animate-spin" />{/if}
 						Delete
 					</AlertDialogAction>
 				</AlertDialogFooter>
