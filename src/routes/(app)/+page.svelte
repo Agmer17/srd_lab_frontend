@@ -342,7 +342,7 @@
 							>
 								{#if product.imageUrl}
 									<img
-										src={product.imageUrl.startsWith('http') ? product.imageUrl : `http://localhost:6969${product.imageUrl}`}
+										src={product.imageUrl.startsWith('http') ? product.imageUrl : `${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:6969'}${product.imageUrl}`}
 										alt={product.name}
 										class="h-full w-full object-cover"
 									/>
