@@ -71,7 +71,7 @@
 		<p
 			class="text-xl font-semibold tracking-tight text-sidebar-foreground group-data-[collapsible=icon]:hidden"
 		>
-			srd creative
+			SPRD LABS
 		</p>
 
 		{#if currentUserStore.data}

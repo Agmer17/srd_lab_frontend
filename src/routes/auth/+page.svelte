@@ -22,9 +22,7 @@
 		class="flex flex-1 flex-col items-center justify-center bg-background bg-primary p-6 text-center md:w-1/2 md:flex-none md:items-start md:p-24 md:text-left"
 	>
 		<div class="flex max-w-sm flex-col gap-4 md:max-w-md">
-			<h1 class="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
-				SRD Lab Creative
-			</h1>
+			<h1 class="text-4xl font-bold tracking-tight text-foreground md:text-5xl">SPRD LABS</h1>
 			<p class="text-base text-muted-foreground md:text-lg">
 				Empowering next-generation digital experiences. Access your workspace to collaborate, build,
 				and scale your creative ideas seamlessly.
