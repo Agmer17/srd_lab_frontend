@@ -5,6 +5,7 @@
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { formatPrice } from '$lib/string_utils';
 	import type { Product } from '$lib/types/product';
+	import { currentUserStore } from '$lib/state/currentUser.svelte.js';
 	import {
 		RiArrowRightLine,
 		RiArrowUpLine,
@@ -178,9 +179,11 @@
 				<button class="sprd-btn sprd-btn--default sprd-btn--lg" onclick={() => goto('/products')}>
 					Order Now <RiArrowRightLine class="ml-1 inline-block h-5 w-5" />
 				</button>
-				<button class="sprd-btn sprd-btn--outline sprd-btn--lg" onclick={() => goto('/auth')}>
-					Sign in
-				</button>
+				{#if !currentUserStore.data}
+					<button class="sprd-btn sprd-btn--outline sprd-btn--lg" onclick={() => goto('/auth')}>
+						Sign in
+					</button>
+				{/if}
 			</div>
 		</div>
 
