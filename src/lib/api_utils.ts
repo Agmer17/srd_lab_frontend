@@ -22,3 +22,10 @@ export const formatDate = (d?: string | null) =>
 	d
 		? new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 		: '-';
+
+
+export function resolveImg(path: string): string {
+	if (!path) return '';
+	if (path.startsWith('http')) return path;
+	return `/api${path}`;
+}

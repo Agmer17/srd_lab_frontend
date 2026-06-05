@@ -69,20 +69,29 @@
 </script>
 
 <div>
-	<header class="sprd-header">
-		<button class="sprd-icon-btn" style="margin-right: 4px" onclick={() => history.back()}>
+	<header
+		class="sticky top-0 z-20 flex h-[52px] shrink-0 items-center justify-between border-b bg-background/85 px-6 backdrop-blur-md"
+	>
+		<button
+			class="relative mr-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-[17px] text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
+			onclick={() => history.back()}
+		>
 			<i class="ri-arrow-left-line"></i>
 		</button>
-		<span class="sprd-crumb">Complete payment</span>
+		<span class="text-sm font-medium tracking-tight text-muted-foreground">Complete payment</span>
 	</header>
 
 	{#await data.orderPromise}
-		<div class="pay-page flex items-center justify-center p-8 animate-pulse text-muted-foreground">
+		<div
+			class="mx-auto flex max-w-5xl animate-pulse items-center justify-center p-8 pt-8 pb-20 text-muted-foreground"
+		>
 			Loading order details...
 		</div>
 	{:then orderData}
 		{#if orderData.error || !orderData.order}
-			<div class="pay-page flex items-center justify-center p-8 text-destructive">
+			<div
+				class="mx-auto flex max-w-5xl items-center justify-center p-8 pt-8 pb-20 text-destructive"
+			>
 				{orderData.error || 'Order not found.'}
 			</div>
 		{:else}
@@ -90,47 +99,76 @@
 			{@const fee = Math.round(order.ordered_price * 0.01)}
 			{@const total = order.ordered_price + fee}
 
-			<div class="pay-page">
-				<div class="pay-grid">
+			<div class="mx-auto max-w-5xl px-7 pt-8 pb-20">
+				<div class="grid grid-cols-1 items-start gap-6 md:grid-cols-[1.4fr_1fr]">
+					<div class="flex flex-col">
+						<div class="mb-3 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+							Choose payment method
+						</div>
 
-					<!-- Left: Method selection -->
-					<div class="pay-left">
-						<div class="pay-section-label">Choose payment method</div>
-
-						<div class="pay-methods">
-							<!-- QRIS Option -->
+						<div class="mb-5 flex flex-col gap-2">
 							<button
-								class="pay-method {methodGroup === 'qris' ? 'pay-method--active' : ''}"
+								class="flex cursor-pointer items-center gap-3.5 rounded-xl border p-3.5 text-left shadow-sm transition-all {methodGroup ===
+								'qris'
+									? 'border-primary bg-card ring-1 ring-primary'
+									: 'border-border bg-card'}"
 								onclick={() => handleGroupSelect('qris')}
 							>
-								<i class="ri-qr-code-line"></i>
-								<div class="pay-method-text text-left">
-									<div class="pay-method-label">
+								<i
+									class="ri-qr-code-line shrink-0 text-[22px] {methodGroup === 'qris'
+										? 'text-primary'
+										: 'text-muted-foreground'}"
+								></i>
+								<div class="min-w-0 flex-1">
+									<div class="flex items-center gap-2 text-[13.5px] font-semibold text-foreground">
 										QRIS
-										<span class="pay-method-rec">Recommended</span>
+										<span
+											class="rounded-full bg-primary px-2 py-[2px] text-[9px] font-bold tracking-wider text-primary-foreground uppercase"
+											>Recommended</span
+										>
 									</div>
-									<div class="pay-method-sub">Scan with any banking / e-wallet app</div>
+									<div class="mt-0.5 text-[11.5px] text-muted-foreground">
+										Scan with any banking / e-wallet app
+									</div>
 								</div>
-								<div class="pay-method-radio {methodGroup === 'qris' ? 'pay-method-radio--on' : ''}">
+								<div
+									class="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all {methodGroup ===
+									'qris'
+										? 'border-primary bg-primary text-[11px] text-primary-foreground'
+										: 'border-border'}"
+								>
 									{#if methodGroup === 'qris'}
 										<i class="ri-check-line"></i>
 									{/if}
 								</div>
 							</button>
 
-							<!-- Virtual Account Option -->
 							<button
-								class="pay-method {methodGroup === 'bank_transfer' ? 'pay-method--active' : ''}"
+								class="flex cursor-pointer items-center gap-3.5 rounded-xl border p-3.5 text-left shadow-sm transition-all {methodGroup ===
+								'bank_transfer'
+									? 'border-primary bg-card ring-1 ring-primary'
+									: 'border-border bg-card'}"
 								onclick={() => handleGroupSelect('bank_transfer')}
 							>
-								<i class="ri-bank-line"></i>
-								<div class="pay-method-text text-left">
-									<div class="pay-method-label">
+								<i
+									class="ri-bank-line shrink-0 text-[22px] {methodGroup === 'bank_transfer'
+										? 'text-primary'
+										: 'text-muted-foreground'}"
+								></i>
+								<div class="min-w-0 flex-1">
+									<div class="flex items-center gap-2 text-[13.5px] font-semibold text-foreground">
 										Virtual Account (VA)
 									</div>
-									<div class="pay-method-sub">Automatic verification via Bank Transfer</div>
+									<div class="mt-0.5 text-[11.5px] text-muted-foreground">
+										Automatic verification via Bank Transfer
+									</div>
 								</div>
-								<div class="pay-method-radio {methodGroup === 'bank_transfer' ? 'pay-method-radio--on' : ''}">
+								<div
+									class="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-all {methodGroup ===
+									'bank_transfer'
+										? 'border-primary bg-primary text-[11px] text-primary-foreground'
+										: 'border-border'}"
+								>
 									{#if methodGroup === 'bank_transfer'}
 										<i class="ri-check-line"></i>
 									{/if}
@@ -138,34 +176,43 @@
 							</button>
 						</div>
 
-						<!-- Bank Selection Panel -->
 						{#if methodGroup === 'bank_transfer'}
-							<div class="pay-panel">
-								<div style="font-size: 13px; font-weight: 600; margin-bottom: 14px;">Select your bank</div>
-								<div class="pay-wallet-grid">
+							<div
+								class="mb-5 flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm"
+							>
+								<div class="text-[13px] font-semibold text-foreground">Select your bank</div>
+								<div class="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
 									{#each bankMethods as b}
-										<button 
-											class="pay-wallet-tile {selectedMethod === b.id ? 'ring-2 ring-primary ring-offset-1' : ''}" 
-											onclick={() => selectedMethod = b.id}
+										<button
+											class="cursor-pointer rounded-lg border bg-transparent p-3.5 text-center transition-all hover:border-primary/50 {selectedMethod ===
+											b.id
+												? 'border-primary ring-1 ring-primary'
+												: 'border-border'}"
+											onclick={() => (selectedMethod = b.id)}
 										>
-											<div class="pay-wallet-mark" style="background: {selectedMethod === b.id ? 'var(--primary)' : 'var(--secondary)'}; color: {selectedMethod === b.id ? '#fff' : 'inherit'}">
+											<div
+												class="mx-auto flex h-9 w-9 items-center justify-center rounded-lg text-base font-extrabold shadow-sm transition-colors {selectedMethod ===
+												b.id
+													? 'border-transparent bg-primary text-primary-foreground'
+													: 'border border-slate-200 bg-white text-slate-900'}"
+											>
 												{b.name.charAt(0)}
 											</div>
-											<div style="font-size: 12px; font-weight: 600; margin-top: 6px;">{b.name}</div>
+											<div class="mt-1.5 text-xs font-semibold text-foreground">{b.name}</div>
 										</button>
 									{/each}
 								</div>
 							</div>
 						{/if}
 
-						<div style="margin-top: 24px;">
-							<button 
-								class="sprd-btn sprd-btn--primary w-full py-4 text-[15px] flex items-center justify-center disabled:opacity-50" 
+						<div class="mt-6">
+							<button
+								class="inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[6.5px] border border-transparent bg-primary px-4 text-[15px] font-medium tracking-tight whitespace-nowrap text-primary-foreground transition-all hover:bg-primary/90 active:translate-y-[1px] disabled:pointer-events-none disabled:opacity-50"
 								onclick={handlePayment}
 								disabled={isProcessing}
 							>
 								{#if isProcessing}
-									<i class="ri-loader-4-line animate-spin mr-2"></i> Processing...
+									<i class="ri-loader-4-line mr-2 animate-spin"></i> Processing...
 								{:else}
 									Process Payment <i class="ri-arrow-right-line ml-2"></i>
 								{/if}
@@ -173,123 +220,58 @@
 						</div>
 					</div>
 
-					<!-- Right: Order summary -->
-					<div class="pay-summary">
-						<div class="pay-summary-h">Order summary</div>
+					<div class="sticky top-[68px] rounded-xl border border-border bg-card p-5 shadow-sm">
+						<div class="mb-4 text-sm font-semibold text-foreground">Order summary</div>
 
-						<div class="pay-summary-product-row">
-							<div class="pay-summary-thumb" style="background: var(--primary-foreground); color: var(--primary)">
+						<div class="mb-4 flex items-center gap-3 rounded-lg bg-secondary/50 p-3">
+							<div
+								class="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-primary text-xl text-primary-foreground"
+							>
 								<i class="ri-box-3-line"></i>
 							</div>
 							<div>
-								<div style="font-size: 14px; font-weight: 600;">{order.product?.name || 'Service Package'}</div>
-								<div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-foreground); margin-top: 3px;">
+								<div class="text-[14px] font-semibold text-foreground">
+									{order.product?.name || 'Service Package'}
+								</div>
+								<div class="mt-[3px] font-mono text-[11px] text-muted-foreground">
 									{order.id?.substring(0, 8).toUpperCase() || order.id}
 								</div>
 							</div>
 						</div>
 
-						<div class="pay-summary-lines">
-							<div class="pay-line">
+						<div class="mb-3 flex flex-col gap-2 border-b border-dashed border-border pb-3">
+							<div class="flex justify-between text-[13px] text-muted-foreground">
 								<span>Service price</span>
-								<span>{formatPrice(order.ordered_price)}</span>
+								<span class="font-mono font-medium text-foreground"
+									>{formatPrice(order.ordered_price)}</span
+								>
 							</div>
-							<div class="pay-line">
+							<div class="flex justify-between text-[13px] text-muted-foreground">
 								<span>Processing fee (1%)</span>
-								<span>{formatPrice(fee)}</span>
+								<span class="font-mono font-medium text-foreground">{formatPrice(fee)}</span>
 							</div>
 						</div>
 
-						<div class="pay-total-row">
-							<span>Total</span>
-							<span class="pay-total-num">{formatPrice(total)}</span>
+						<div class="flex items-baseline justify-between">
+							<span class="text-[14px] font-semibold text-foreground">Total</span>
+							<span class="font-mono text-[22px] font-bold tracking-tight text-foreground"
+								>{formatPrice(total)}</span
+							>
 						</div>
 
-						<div class="pay-summary-note">
-							<i class="ri-shield-check-line" style="color: var(--primary); flex-shrink: 0;"></i>
+						<div
+							class="mt-4 flex items-start gap-2 border-t border-border pt-3.5 text-[11.5px] leading-relaxed text-muted-foreground"
+						>
+							<i class="ri-shield-check-line shrink-0 text-primary"></i>
 							Payments are secured and processed automatically.
 						</div>
 					</div>
-
 				</div>
 			</div>
 		{/if}
 	{:catch error}
-		<div class="pay-page flex items-center justify-center p-8 text-destructive">
+		<div class="mx-auto flex max-w-5xl items-center justify-center p-8 pt-8 pb-20 text-destructive">
 			Failed to load checkout details.
 		</div>
 	{/await}
 </div>
-
-<style>
-/* ================================================================
-   HEADER
-   ================================================================ */
-.sprd-header {
-  height: 52px; padding: 0 24px;
-  display: flex; align-items: center; justify-content: space-between;
-  background: oklch(0.9816 0.0017 247.84 / 0.85); backdrop-filter: blur(10px);
-  border-bottom: 1px solid oklch(0.6 0.002 17 / .3);
-  position: sticky; top: 0; z-index: 20; flex-shrink: 0;
-}
-.sprd-crumb { font-size: 14px; font-weight: 500; color: var(--muted-foreground); letter-spacing: -0.01em; }
-.sprd-icon-btn { position: relative; width: 36px; height: 36px; border-radius: 8px; background: transparent; border: none; cursor: pointer; color: var(--muted-foreground); font-size: 17px; display: flex; align-items: center; justify-content: center; transition: all .15s; }
-.sprd-icon-btn:hover { background: oklch(0.85 0.005 250); color: var(--foreground); }
-
-/* ================================================================
-   ATOMS
-   ================================================================ */
-.sprd-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  height: 36px; padding: 0 14px; border-radius: 6.5px;
-  font-family: inherit; font-size: 14px; font-weight: 500; letter-spacing: -0.01em;
-  border: 1px solid transparent; cursor: pointer; transition: all .15s; white-space: nowrap;
-}
-.sprd-btn:active:not(:disabled) { transform: translateY(1px); }
-.sprd-btn:disabled { opacity: .45; cursor: not-allowed; }
-.sprd-btn--primary { background: var(--primary); color: var(--primary-foreground); }
-.sprd-btn--primary:hover:not(:disabled) { background: oklch(0.86 0.17 91 / 0.82); }
-
-/* ================================================================
-   PAYMENT PAGE
-   ================================================================ */
-.pay-page { padding: 32px 28px 80px; max-width: 1024px; margin: 0 auto; }
-.pay-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px; align-items: start; }
-.pay-section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-foreground); margin-bottom: 12px; }
-.pay-methods { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-.pay-method { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 12px; background: var(--card); border: 1px solid var(--border); cursor: pointer; font-family: inherit; text-align: left; transition: all .15s; box-shadow: var(--shadow-xs); }
-.pay-method > i:first-child { font-size: 22px; color: var(--muted-foreground); flex-shrink: 0; }
-.pay-method-text { flex: 1; min-width: 0; }
-.pay-method-label { font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-.pay-method-rec { background: var(--primary); color: var(--primary-foreground); padding: 1px 7px; border-radius: 99px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-.pay-method-sub { font-size: 11.5px; color: var(--muted-foreground); margin-top: 2px; }
-.pay-method-radio { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .15s; }
-.pay-method-radio--on { background: var(--secondary); border-color: var(--secondary); color: #fff; font-size: 11px; }
-.pay-method--active { border-color: var(--secondary); box-shadow: 0 0 0 3px oklch(0.38 0.14 265 / .15); }
-.pay-method--active > i:first-child { color: var(--secondary); }
-
-.pay-panel { background: var(--card); border-radius: 14px; padding: 20px; box-shadow: inset 0 0 0 1px oklch(0 0 0 / .08), var(--shadow-xs); display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
-.pay-wallet-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-.pay-wallet-tile { padding: 14px 8px; border-radius: 10px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-family: inherit; transition: all .15s; text-align: center; }
-.pay-wallet-tile:hover { border-color: var(--secondary); box-shadow: 0 0 0 2px oklch(0.38 0.14 265 / .15); }
-.pay-wallet-mark { width: 38px; height: 38px; border-radius: 10px; color: #fff; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
-
-.pay-summary { background: var(--card); border-radius: 14px; padding: 22px; box-shadow: inset 0 0 0 1px oklch(0 0 0 / .08), var(--shadow-xs); position: sticky; top: 68px; }
-.pay-summary-h { font-size: 14px; font-weight: 600; margin: 0 0 16px; }
-.pay-summary-product-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: oklch(0.97 0.002 248); border-radius: 10px; margin-bottom: 16px; }
-.pay-summary-thumb { width: 42px; height: 42px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: rgba(255,255,255,0.9); flex-shrink: 0; }
-.pay-summary-lines { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; border-bottom: 1px dashed oklch(0.85 0 0); margin-bottom: 12px; }
-.pay-line { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted-foreground); }
-.pay-line span:last-child { color: var(--foreground); font-family: 'JetBrains Mono', monospace; font-weight: 500; }
-.pay-total-row { display: flex; justify-content: space-between; align-items: baseline; }
-.pay-total-row > span:first-child { font-size: 14px; font-weight: 600; }
-.pay-total-num { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; letter-spacing: -0.025em; }
-.pay-summary-note { display: flex; align-items: flex-start; gap: 8px; font-size: 11.5px; color: var(--muted-foreground); margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); line-height: 1.5; }
-
-@media (max-width: 900px) {
-  .pay-grid { grid-template-columns: 1fr; }
-}
-@media (max-width: 600px) {
-  .pay-wallet-grid { grid-template-columns: repeat(2, 1fr); }
-}
-</style>

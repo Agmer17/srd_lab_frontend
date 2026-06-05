@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { PUBLIC_API_URL } from '$env/static/public';
+	import { resolveImg } from '$lib/api_utils.js';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { formatPrice } from '$lib/string_utils';
 	import type { Product } from '$lib/types/product';
@@ -167,14 +169,14 @@
 				dan <span class="home-hero-h1-accent">Video</span> Brand Kamu Makin Stand Out!
 			</h1>
 
-			<p class="home-hero-sub"> 
-				Punya materi mentah tapi bingung ngeditnya? Serahkan urusan visual brand Anda pada ahlinya. 
+			<p class="home-hero-sub">
+				Punya materi mentah tapi bingung ngeditnya? Serahkan urusan visual brand Anda pada ahlinya.
 				Pesan jasanya cepat, revisi terarah, dan transaksi super praktis
 			</p>
 
 			<div class="home-hero-cta">
 				<button class="sprd-btn sprd-btn--default sprd-btn--lg" onclick={() => goto('/products')}>
-					Pesan Sekarang <RiArrowRightLine class="inline-block h-5 w-5 ml-1" />
+					Pesan Sekarang <RiArrowRightLine class="ml-1 inline-block h-5 w-5" />
 				</button>
 				<button class="sprd-btn sprd-btn--outline sprd-btn--lg" onclick={() => goto('/auth')}>
 					Sign in
@@ -185,7 +187,7 @@
 		<!-- Right: stats panel -->
 		<div class="home-hero-panel">
 			<div class="home-panel-logo">
-				<RiSparkling2Line class="text-[var(--primary)] h-6 w-6" />
+				<RiSparkling2Line class="h-6 w-6 text-[var(--primary)]" />
 			</div>
 
 			<div class="home-stat-grid">
@@ -204,7 +206,7 @@
 			</div>
 
 			<div class="home-panel-note">
-				<RiShieldCheckLine class="shrink-0 h-4 w-4 text-[var(--primary)]" />
+				<RiShieldCheckLine class="h-4 w-4 shrink-0 text-[var(--primary)]" />
 				QRIS · Bank transfer
 			</div>
 		</div>
@@ -294,7 +296,7 @@
 		<div class="home-section-head">
 			<h2 class="home-section-title">Favorite Services</h2>
 			<button class="sprd-btn sprd-btn--ghost sprd-btn--sm" onclick={() => goto('/products')}>
-				Browse<RiArrowRightLine class="inline-block h-4 w-4 ml-1" />
+				Browse<RiArrowRightLine class="ml-1 inline-block h-4 w-4" />
 			</button>
 		</div>
 
@@ -331,10 +333,7 @@
 				{@const featured = res.products}
 				<div class="home-products-grid">
 					{#each featured as product (product.id)}
-						<button
-							class="home-prod-card text-left"
-							onclick={() => goto('/products')}
-						>
+						<button class="home-prod-card text-left" onclick={() => goto('/products')}>
 							<!-- Thumb: image or fallback -->
 							<div
 								class="home-prod-thumb"
@@ -342,7 +341,7 @@
 							>
 								{#if product.imageUrl}
 									<img
-										src={product.imageUrl.startsWith('http') ? product.imageUrl : `${import.meta.env.PUBLIC_API_URL ?? 'http://localhost:6969'}${product.imageUrl}`}
+										src={resolveImg(product.imageUrl)}
 										alt={product.name}
 										class="h-full w-full object-cover"
 									/>
@@ -388,7 +387,7 @@
 			<div class="home-testimonials-grid">
 				{#each Array(4) as _}
 					<div class="home-testimonial">
-						<Skeleton class="h-4 w-24 mb-2" />
+						<Skeleton class="mb-2 h-4 w-24" />
 						<Skeleton class="h-4 w-full" />
 						<Skeleton class="h-4 w-5/6" />
 						<div class="home-testi-author mt-4">
@@ -402,14 +401,19 @@
 				{/each}
 			</div>
 		{:then res}
-			{@const dbReviews = res && res.reviews ? res.reviews.map((r: any) => ({
-				id: r.id,
-				user_name: r.user?.full_name || 'Customer',
-				user_initial: r.user?.full_name ? r.user.full_name.substring(0,2).toUpperCase() : 'CU',
-				company: 'Verified Buyer', // Since backend Review model doesn't store company
-				rating: r.rating,
-				comment: r.comment
-			})) : []}
+			{@const dbReviews =
+				res && res.reviews
+					? res.reviews.map((r: any) => ({
+							id: r.id,
+							user_name: r.user?.full_name || 'Customer',
+							user_initial: r.user?.full_name
+								? r.user.full_name.substring(0, 2).toUpperCase()
+								: 'CU',
+							company: 'Verified Buyer', // Since backend Review model doesn't store company
+							rating: r.rating,
+							comment: r.comment
+						}))
+					: []}
 			{@const mergedReviews = [...dbReviews, ...TESTIMONIALS].slice(0, 4)}
 
 			<div class="home-testimonials-grid">
@@ -460,9 +464,9 @@
 			<h2>Siap Bikin Konten Kamu Makin Keren?</h2>
 			<p>Pilih layanan editing dan tim kreatif kami akan langsung mengeksekusinya.</p>
 		</div>
-		<div class="flex flex-wrap shrink-0 gap-2.5 mt-2 sm:mt-0 w-full sm:w-auto">
+		<div class="mt-2 flex w-full shrink-0 flex-wrap gap-2.5 sm:mt-0 sm:w-auto">
 			<button class="sprd-btn sprd-btn--default sprd-btn--lg" onclick={() => goto('/products')}>
-				Order Now <RiArrowRightLine class="inline-block h-5 w-5 ml-1" />
+				Order Now <RiArrowRightLine class="ml-1 inline-block h-5 w-5" />
 			</button>
 		</div>
 	</div>

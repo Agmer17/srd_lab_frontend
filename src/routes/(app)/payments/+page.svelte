@@ -52,11 +52,12 @@
 
 	// Payment status → Badge variant + custom class (same pattern as OrderList)
 	const statusConfig: Record<string, string> = {
-		paid:      'bg-chart-4 text-white hover:bg-chart-4/80 border-transparent',
-		unpaid:    'bg-muted text-muted-foreground border-transparent',
-		failed:    'bg-destructive text-destructive-foreground hover:bg-destructive/80 border-transparent',
-		expired:   'bg-orange-500/10 text-orange-600 border-orange-200',
-		cancelled: 'bg-destructive text-destructive-foreground hover:bg-destructive/80 border-transparent'
+		paid: 'bg-chart-4 text-white hover:bg-chart-4/80 border-transparent',
+		unpaid: 'bg-muted text-muted-foreground border-transparent',
+		failed: 'bg-destructive text-destructive-foreground hover:bg-destructive/80 border-transparent',
+		expired: 'bg-orange-500/10 text-orange-600 border-orange-200',
+		cancelled:
+			'bg-destructive text-destructive-foreground hover:bg-destructive/80 border-transparent'
 	};
 </script>
 
@@ -68,24 +69,28 @@
 				{data.isAdmin ? 'All Payments (Admin)' : 'Payments'}
 			</h1>
 			<p class="text-sm text-muted-foreground">
-				{data.isAdmin ? 'View and manage all payment transactions across the system.' : 'View and manage your payment transactions.'}
+				{data.isAdmin
+					? 'View and manage all payment transactions across the system.'
+					: 'View and manage your payment transactions.'}
 			</p>
 		</div>
 
 		{#await data.historyPromise}
 			<div class="flex items-center justify-center py-20 text-sm text-muted-foreground">
 				<div class="flex flex-col items-center gap-3">
-					<div class="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary"></div>
+					<div
+						class="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary"
+					></div>
 					Loading payment history...
 				</div>
 			</div>
-
 		{:then result}
 			{#if result.error}
-				<div class="rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center text-sm text-destructive">
+				<div
+					class="rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center text-sm text-destructive"
+				>
 					{result.error}
 				</div>
-
 			{:else}
 				{@const payments = result.payments as Payment[]}
 				{@const filtered = payments.filter((p) => {
@@ -107,23 +112,33 @@
 					/>
 				</div>
 
-				<div class="rounded-xl border border-border bg-card shadow-sm overflow-x-auto">
+				<div class="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
 					<Table.Root>
 						<Table.Header>
 							<Table.Row class="border-b border-border hover:bg-transparent">
-								<Table.Head class="pl-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+								<Table.Head
+									class="pl-6 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+								>
 									Payment ID
 								</Table.Head>
-								<Table.Head class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+								<Table.Head
+									class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+								>
 									Method
 								</Table.Head>
-								<Table.Head class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+								<Table.Head
+									class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+								>
 									Status
 								</Table.Head>
-								<Table.Head class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+								<Table.Head
+									class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+								>
 									Expires / Paid
 								</Table.Head>
-								<Table.Head class="pr-6 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+								<Table.Head
+									class="pr-6 text-right text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+								>
 									Amount
 								</Table.Head>
 							</Table.Row>
@@ -133,8 +148,10 @@
 							{#if filtered.length === 0}
 								<Table.Row>
 									<Table.Cell colspan={5} class="py-16 text-center text-sm text-muted-foreground">
-										{payments.length === 0 
-											? (data.isAdmin ? 'No payment transactions found in the system.' : 'No payment transactions yet.') 
+										{payments.length === 0
+											? data.isAdmin
+												? 'No payment transactions found in the system.'
+												: 'No payment transactions yet.'
 											: 'No results match your search.'}
 									</Table.Cell>
 								</Table.Row>
@@ -142,11 +159,15 @@
 								{#each filtered as payment (payment.payment_id)}
 									{@const secs = secondsLeft(payment.expired_at)}
 									{@const isUnpaid = payment.status?.toLowerCase() === 'unpaid'}
-									{@const badgeClass = statusConfig[payment.status?.toLowerCase()] ?? 'bg-secondary text-secondary-foreground border-transparent'}
+									{@const badgeClass =
+										statusConfig[payment.status?.toLowerCase()] ??
+										'bg-secondary text-secondary-foreground border-transparent'}
 									{@const isCancelled = payment.status?.toLowerCase() === 'cancelled'}
 
 									<Table.Row
-										class="border-b border-border/60 transition-colors {!data.isAdmin && isCancelled ? 'opacity-60 cursor-not-allowed bg-muted/20 hover:bg-muted/20' : 'cursor-pointer hover:bg-muted/40'}"
+										class="border-b border-border/60 transition-colors {!data.isAdmin && isCancelled
+											? 'cursor-not-allowed bg-muted/20 opacity-60 hover:bg-muted/20'
+											: 'cursor-pointer hover:bg-muted/40'}"
 										onclick={() => handleRowClick(payment)}
 									>
 										<!-- Payment ID -->
@@ -179,7 +200,11 @@
 										<!-- Countdown / Paid date -->
 										<Table.Cell class="py-3 align-middle text-sm text-muted-foreground">
 											{#if isUnpaid && payment.expired_at}
-												<span class="font-mono text-xs font-semibold {secs === 0 ? 'text-destructive' : 'text-orange-600'}">
+												<span
+													class="font-mono text-xs font-semibold {secs === 0
+														? 'text-destructive'
+														: 'text-orange-600'}"
+												>
 													{formatCountdown(secs)}
 												</span>
 											{:else if payment.paid_at}
@@ -202,9 +227,10 @@
 					</Table.Root>
 				</div>
 			{/if}
-
 		{:catch}
-			<div class="rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center text-sm text-destructive">
+			<div
+				class="rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center text-sm text-destructive"
+			>
 				Failed to load payment history.
 			</div>
 		{/await}
@@ -220,63 +246,73 @@
 	></div>
 
 	<!-- Panel -->
-	<div class="fixed right-0 top-0 z-50 h-full w-full max-w-md bg-card border-l border-border shadow-2xl flex flex-col overflow-y-auto">
+	<div
+		class="fixed top-0 right-0 z-50 flex h-full w-full max-w-md flex-col overflow-y-auto border-l border-border bg-card shadow-2xl"
+	>
 		<!-- Panel Header -->
-		<div class="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card z-10">
+		<div
+			class="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4"
+		>
 			<div>
 				<h2 class="text-base font-semibold text-foreground">Payment Detail</h2>
-				<p class="text-xs text-muted-foreground font-mono mt-0.5">#{selectedPayment.payment_id.substring(0, 8).toUpperCase()}</p>
+				<p class="mt-0.5 font-mono text-xs text-muted-foreground">
+					#{selectedPayment.payment_id.substring(0, 8).toUpperCase()}
+				</p>
 			</div>
 			<button
 				onclick={() => (selectedPayment = null)}
-				class="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
+				class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary transition-colors hover:bg-secondary/80"
 			>
 				<RiCloseLine class="h-4 w-4 text-muted-foreground" />
 			</button>
 		</div>
 
 		<!-- Status Banner -->
-		<div class="px-6 py-5 flex flex-col items-center border-b border-border">
+		<div class="flex flex-col items-center border-b border-border px-6 py-5">
 			{#if selectedPayment.status?.toLowerCase() === 'paid'}
-				<div class="w-14 h-14 rounded-full flex items-center justify-center mb-3 shadow-sm" style="background: oklch(0.70 0.15 162 / 0.15); color: var(--chart-4);">
+				<div
+					class="mb-3 flex h-14 w-14 items-center justify-center rounded-full shadow-sm"
+					style="background: oklch(0.70 0.15 162 / 0.15); color: var(--chart-4);"
+				>
 					<RiCheckLine class="h-7 w-7" />
 				</div>
 			{:else}
-				<div class="w-14 h-14 bg-destructive/10 text-destructive rounded-full flex items-center justify-center mb-3 shadow-sm">
+				<div
+					class="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive shadow-sm"
+				>
 					<RiCloseCircleLine class="h-7 w-7" />
 				</div>
 			{/if}
 			<Badge
 				variant="outline"
-				class="px-3 py-1 text-xs font-bold tracking-wide uppercase {statusConfig[selectedPayment.status?.toLowerCase()] ?? 'bg-secondary text-secondary-foreground border-transparent'}"
+				class="px-3 py-1 text-xs font-bold tracking-wide uppercase {statusConfig[
+					selectedPayment.status?.toLowerCase()
+				] ?? 'border-transparent bg-secondary text-secondary-foreground'}"
 			>
 				{selectedPayment.status}
 			</Badge>
 		</div>
 
 		<!-- Detail Fields -->
-		<div class="px-6 py-5 flex flex-col gap-4">
-			{#each [
-				{ label: 'Payment ID', value: selectedPayment.payment_id },
-				{ label: 'Order ID', value: selectedPayment.order_id },
-				{ label: 'Method', value: getMethodLabel(selectedPayment.method) },
-				{ label: 'Amount', value: formatPrice(selectedPayment.amount) },
-				{ label: 'Fee', value: formatPrice(selectedPayment.fee ?? 0) },
-				{ label: 'Total', value: selectedPayment.total_payment ? formatPrice(selectedPayment.total_payment) : '—' },
-				{ label: 'Created', value: formatDate(selectedPayment.created_at) },
-				{ label: 'Expires', value: selectedPayment.expired_at ? formatDate(selectedPayment.expired_at) : '—' },
-				{ label: 'Paid At', value: selectedPayment.paid_at ? formatDate(selectedPayment.paid_at) : '—' },
-			] as field}
+		<div class="flex flex-col gap-4 px-6 py-5">
+			{#each [{ label: 'Payment ID', value: selectedPayment.payment_id }, { label: 'Order ID', value: selectedPayment.order_id }, { label: 'Method', value: getMethodLabel(selectedPayment.method) }, { label: 'Amount', value: formatPrice(selectedPayment.amount) }, { label: 'Fee', value: formatPrice(selectedPayment.fee ?? 0) }, { label: 'Total', value: selectedPayment.total_payment ? formatPrice(selectedPayment.total_payment) : '—' }, { label: 'Created', value: formatDate(selectedPayment.created_at) }, { label: 'Expires', value: selectedPayment.expired_at ? formatDate(selectedPayment.expired_at) : '—' }, { label: 'Paid At', value: selectedPayment.paid_at ? formatDate(selectedPayment.paid_at) : '—' }] as field}
 				<div class="flex items-start justify-between gap-4">
-					<span class="text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0 min-w-[80px]">{field.label}</span>
-					<span class="text-sm font-mono text-foreground text-right break-all">{field.value}</span>
+					<span
+						class="min-w-[80px] shrink-0 text-xs font-medium tracking-wider text-muted-foreground uppercase"
+						>{field.label}</span
+					>
+					<span class="text-right font-mono text-sm break-all text-foreground">{field.value}</span>
 				</div>
 			{/each}
 
 			{#if selectedPayment.payment_number}
-				<div class="flex flex-col gap-1.5 pt-2 border-t border-border">
-					<span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Payment Number / QR Data</span>
-					<div class="bg-secondary/40 rounded-lg p-3 text-xs font-mono text-foreground break-all leading-relaxed">
+				<div class="flex flex-col gap-1.5 border-t border-border pt-2">
+					<span class="text-xs font-medium tracking-wider text-muted-foreground uppercase"
+						>Payment Number / QR Data</span
+					>
+					<div
+						class="rounded-lg bg-secondary/40 p-3 font-mono text-xs leading-relaxed break-all text-foreground"
+					>
 						{selectedPayment.payment_number}
 					</div>
 				</div>

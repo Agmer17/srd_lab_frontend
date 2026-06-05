@@ -4,7 +4,6 @@
 		RiAddLine,
 		RiEditLine,
 		RiDeleteBin7Line,
-		RiPriceTag3Line,
 		RiImageLine,
 		RiCheckboxCircleLine,
 		RiCloseCircleLine,
@@ -15,8 +14,7 @@
 		RiPriceTagLine,
 		RiErrorWarningLine,
 		RiCloseLine,
-		RiCheckLine,
-		RiArrowLeftLine
+		RiCheckLine
 	} from 'remixicon-svelte';
 	import {
 		Table,
@@ -231,12 +229,15 @@
 <Toaster richColors theme={themeData.value} position="top-right" />
 
 <div class="flex animate-in flex-col gap-6 p-6 duration-500 fade-in">
-
 	<!-- ── Page Header ── -->
 	<div class="flex items-start justify-between">
 		<div>
-			<h1 class="text-xl font-semibold tracking-tight text-foreground">Product & Category Management</h1>
-			<p class="mt-0.5 text-sm text-muted-foreground">Manage your product catalog and categories.</p>
+			<h1 class="text-xl font-semibold tracking-tight text-foreground">
+				Product & Category Management
+			</h1>
+			<p class="mt-0.5 text-sm text-muted-foreground">
+				Manage your product catalog and categories.
+			</p>
 		</div>
 
 		<!-- Action button: changes depending on tab -->
@@ -258,11 +259,12 @@
 	</div>
 
 	<!-- ── Tabs ── -->
-	<div class="flex items-center gap-1 bg-secondary/10 p-1 rounded-xl w-fit border border-border">
+	<div class="flex w-fit items-center gap-1 rounded-xl border border-border bg-secondary/10 p-1">
 		{#each [{ id: 'products', label: 'Products', Icon: RiShoppingBagLine }, { id: 'categories', label: 'Categories', Icon: RiPriceTagLine }] as tab}
 			<button
-				class="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all {activeTab === tab.id
-					? 'bg-card shadow-sm text-foreground'
+				class="flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition-all {activeTab ===
+				tab.id
+					? 'bg-card text-foreground shadow-sm'
 					: 'text-muted-foreground hover:text-foreground'}"
 				onclick={() => (activeTab = tab.id as TabId)}
 			>
@@ -278,9 +280,9 @@
 			<!-- Loading skeleton -->
 			<div class="space-y-2">
 				<Skeleton class="h-9 w-64" />
-				<div class="rounded-lg border border-border bg-card overflow-hidden">
+				<div class="overflow-hidden rounded-lg border border-border bg-card">
 					{#each Array(5) as _}
-						<div class="flex items-center gap-4 px-4 py-3 border-b border-border/60">
+						<div class="flex items-center gap-4 border-b border-border/60 px-4 py-3">
 							<Skeleton class="h-10 w-10 rounded-lg" />
 							<div class="flex-1 space-y-1.5">
 								<Skeleton class="h-3.5 w-48" />
@@ -300,8 +302,14 @@
 			<!-- Search + count -->
 			<div class="flex items-center justify-between gap-3">
 				<div class="relative w-72">
-					<RiSearchLine class="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-					<Input bind:value={searchProducts} placeholder="Search products..." class="bg-card pl-8 text-sm" />
+					<RiSearchLine
+						class="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+					/>
+					<Input
+						bind:value={searchProducts}
+						placeholder="Search products..."
+						class="bg-card pl-8 text-sm"
+					/>
 				</div>
 				<span class="text-xs font-medium text-muted-foreground">
 					{filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
@@ -309,19 +317,37 @@
 			</div>
 
 			{#if res.error}
-				<div class="rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center text-sm text-destructive flex items-center justify-center gap-2">
-					<RiErrorWarningLine class="h-5 w-5" /> {res.error}
+				<div
+					class="flex items-center justify-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center text-sm text-destructive"
+				>
+					<RiErrorWarningLine class="h-5 w-5" />
+					{res.error}
 				</div>
 			{:else}
 				<div class="overflow-hidden rounded-lg border border-border bg-card">
 					<Table>
 						<TableHeader>
 							<TableRow class="border-b border-border/60 bg-muted/30">
-								<TableHead class="pl-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Product</TableHead>
-								<TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</TableHead>
-								<TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Featured</TableHead>
-								<TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Price</TableHead>
-								<TableHead class="pr-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Actions</TableHead>
+								<TableHead
+									class="pl-4 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+									>Product</TableHead
+								>
+								<TableHead
+									class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+									>Status</TableHead
+								>
+								<TableHead
+									class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+									>Featured</TableHead
+								>
+								<TableHead
+									class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+									>Price</TableHead
+								>
+								<TableHead
+									class="pr-3 text-right text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+									>Actions</TableHead
+								>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -341,17 +367,27 @@
 										<TableCell class="py-3 pl-4">
 											<div class="flex items-center gap-3">
 												<!-- Thumbnail -->
-												<div class="h-10 w-10 rounded-lg overflow-hidden flex items-center justify-center shrink-0"
-													style="background: var(--secondary);">
+												<div
+													class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg"
+													style="background: var(--secondary);"
+												>
 													{#if product.imageUrl}
-														<img src={product.imageUrl} alt={product.name} class="h-full w-full object-cover" />
+														<img
+															src={product.imageUrl}
+															alt={product.name}
+															class="h-full w-full object-cover"
+														/>
 													{:else}
 														<RiImageLine class="h-5 w-5 text-white/60" />
 													{/if}
 												</div>
 												<div class="min-w-0">
-													<p class="truncate text-sm font-medium leading-tight text-foreground">{product.name}</p>
-													<p class="truncate text-xs text-muted-foreground font-mono">{product.slug}</p>
+													<p class="truncate text-sm leading-tight font-medium text-foreground">
+														{product.name}
+													</p>
+													<p class="truncate font-mono text-xs text-muted-foreground">
+														{product.slug}
+													</p>
 												</div>
 											</div>
 										</TableCell>
@@ -359,11 +395,16 @@
 										<!-- Status badge -->
 										<TableCell class="py-3">
 											{#if product.status === 'active'}
-												<Badge class="bg-[var(--chart-4)] text-white hover:bg-[var(--chart-4)]/80 border-transparent text-[10px] font-bold uppercase tracking-wide">
+												<Badge
+													class="border-transparent bg-[var(--chart-4)] text-[10px] font-bold tracking-wide text-white uppercase hover:bg-[var(--chart-4)]/80"
+												>
 													<RiCheckboxCircleLine class="mr-1 h-3 w-3" /> Active
 												</Badge>
 											{:else}
-												<Badge variant="outline" class="text-[10px] font-bold uppercase tracking-wide text-muted-foreground border-muted">
+												<Badge
+													variant="outline"
+													class="border-muted text-[10px] font-bold tracking-wide text-muted-foreground uppercase"
+												>
 													<RiCloseCircleLine class="mr-1 h-3 w-3" /> Inactive
 												</Badge>
 											{/if}
@@ -372,7 +413,10 @@
 										<!-- Featured -->
 										<TableCell class="py-3">
 											{#if product.is_featured}
-												<span class="flex items-center gap-1 text-xs font-semibold" style="color: var(--primary);">
+												<span
+													class="flex items-center gap-1 text-xs font-semibold"
+													style="color: var(--primary);"
+												>
 													<RiStarFill class="h-3.5 w-3.5" /> Featured
 												</span>
 											{:else}
@@ -395,7 +439,7 @@
 												</DropdownMenuTrigger>
 												<DropdownMenuContent align="end" class="w-40">
 													<DropdownMenuItem>
-														<a href="/admin/products/{product.id}" class="flex items-center w-full">
+														<a href="/admin/products/{product.id}" class="flex w-full items-center">
 															<RiEditLine class="mr-2 h-3.5 w-3.5" /> Edit
 														</a>
 													</DropdownMenuItem>
@@ -418,7 +462,9 @@
 				<p class="text-xs text-muted-foreground">Use ··· menu to edit or delete a product</p>
 			{/if}
 		{:catch}
-			<div class="rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center text-sm text-destructive">
+			<div
+				class="rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center text-sm text-destructive"
+			>
 				Failed to connect to server.
 			</div>
 		{/await}
@@ -429,9 +475,9 @@
 		{#await data.dataPromise}
 			<div class="space-y-2">
 				<Skeleton class="h-9 w-64" />
-				<div class="rounded-lg border border-border bg-card overflow-hidden">
+				<div class="overflow-hidden rounded-lg border border-border bg-card">
 					{#each Array(4) as _}
-						<div class="flex items-center gap-4 px-4 py-3 border-b border-border/60">
+						<div class="flex items-center gap-4 border-b border-border/60 px-4 py-3">
 							<Skeleton class="h-8 w-8 rounded-lg" />
 							<div class="flex-1 space-y-1.5">
 								<Skeleton class="h-3.5 w-36" />
@@ -448,8 +494,14 @@
 
 			<div class="flex items-center justify-between gap-3">
 				<div class="relative w-72">
-					<RiSearchLine class="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-					<Input bind:value={searchCategories} placeholder="Search categories..." class="bg-card pl-8 text-sm" />
+					<RiSearchLine
+						class="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+					/>
+					<Input
+						bind:value={searchCategories}
+						placeholder="Search categories..."
+						class="bg-card pl-8 text-sm"
+					/>
 				</div>
 				<span class="text-xs font-medium text-muted-foreground">
 					{filteredCats.length} categor{filteredCats.length !== 1 ? 'ies' : 'y'}
@@ -457,18 +509,33 @@
 			</div>
 
 			{#if res.error}
-				<div class="rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center text-sm text-destructive flex items-center justify-center gap-2">
-					<RiErrorWarningLine class="h-5 w-5" /> {res.error}
+				<div
+					class="flex items-center justify-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center text-sm text-destructive"
+				>
+					<RiErrorWarningLine class="h-5 w-5" />
+					{res.error}
 				</div>
 			{:else}
 				<div class="overflow-hidden rounded-lg border border-border bg-card">
 					<Table>
 						<TableHeader>
 							<TableRow class="border-b border-border/60 bg-muted/30">
-								<TableHead class="pl-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</TableHead>
-								<TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Slug</TableHead>
-								<TableHead class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Description</TableHead>
-								<TableHead class="pr-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Actions</TableHead>
+								<TableHead
+									class="pl-4 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+									>Name</TableHead
+								>
+								<TableHead
+									class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+									>Slug</TableHead
+								>
+								<TableHead
+									class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+									>Description</TableHead
+								>
+								<TableHead
+									class="pr-3 text-right text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+									>Actions</TableHead
+								>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -485,12 +552,16 @@
 								{#each filteredCats as cat (cat.id)}
 									<TableRow class="border-b border-border/60 transition-colors hover:bg-muted/30">
 										<TableCell class="py-3 pl-4">
-											<span class="inline-flex h-5 items-center rounded-full px-2.5 text-[11px] font-medium bg-primary text-primary-foreground">
+											<span
+												class="inline-flex h-5 items-center rounded-full bg-primary px-2.5 text-[11px] font-medium text-primary-foreground"
+											>
 												{cat.name}
 											</span>
 										</TableCell>
-										<TableCell class="py-3 font-mono text-xs text-muted-foreground">{cat.slug}</TableCell>
-										<TableCell class="py-3 text-sm text-muted-foreground max-w-[300px]">
+										<TableCell class="py-3 font-mono text-xs text-muted-foreground"
+											>{cat.slug}</TableCell
+										>
+										<TableCell class="max-w-[300px] py-3 text-sm text-muted-foreground">
 											<span class="line-clamp-1">{cat.desc ?? '—'}</span>
 										</TableCell>
 										<TableCell class="py-3 pr-3 text-right">
@@ -523,7 +594,9 @@
 				<p class="text-xs text-muted-foreground">Use ··· menu to edit or delete a category</p>
 			{/if}
 		{:catch}
-			<div class="rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center text-sm text-destructive">
+			<div
+				class="rounded-xl border border-destructive/20 bg-destructive/5 p-8 text-center text-sm text-destructive"
+			>
 				Failed to connect to server.
 			</div>
 		{/await}
@@ -536,13 +609,14 @@
 		<AlertDialogHeader>
 			<AlertDialogTitle>Delete product?</AlertDialogTitle>
 			<AlertDialogDescription>
-				<span class="font-medium text-foreground">"{targetProduct?.name}"</span> will be permanently removed along with all its images and category assignments.
+				<span class="font-medium text-foreground">"{targetProduct?.name}"</span> will be permanently removed
+				along with all its images and category assignments.
 			</AlertDialogDescription>
 		</AlertDialogHeader>
 		<AlertDialogFooter>
 			<AlertDialogCancel onclick={() => (deleteProductOpen = false)}>Cancel</AlertDialogCancel>
 			<AlertDialogAction
-				class="bg-destructive text-white hover:bg-destructive/90 flex items-center gap-2"
+				class="flex items-center gap-2 bg-destructive text-white hover:bg-destructive/90"
 				onclick={confirmDeleteProduct}
 				disabled={isDeletingProduct}
 			>
@@ -557,20 +631,20 @@
 {#if catModalOpen}
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
 		onclick={() => !isSavingCat && (catModalOpen = false)}
 	>
 		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 		<div
-			class="bg-card rounded-2xl p-6 shadow-xl w-full max-w-sm border"
+			class="w-full max-w-sm rounded-2xl border bg-card p-6 shadow-xl"
 			onclick={(e) => e.stopPropagation()}
 		>
-			<div class="flex items-center justify-between mb-5">
+			<div class="mb-5 flex items-center justify-between">
 				<h3 class="text-base font-semibold tracking-tight">
 					{catModalMode === 'create' ? 'New Category' : 'Edit Category'}
 				</h3>
 				<button
-					class="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted transition-colors border-none bg-transparent cursor-pointer"
+					class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-muted-foreground transition-colors hover:bg-muted"
 					onclick={() => (catModalOpen = false)}
 				>
 					<RiCloseLine class="h-4 w-4" />
@@ -580,7 +654,9 @@
 			<div class="flex flex-col gap-4">
 				<!-- Name -->
 				<div class="flex flex-col gap-1.5">
-					<label for="cat-name" class="text-xs font-medium text-foreground">Name <span class="text-destructive">*</span></label>
+					<label for="cat-name" class="text-xs font-medium text-foreground"
+						>Name <span class="text-destructive">*</span></label
+					>
 					<Input
 						id="cat-name"
 						bind:value={catForm.name}
@@ -594,30 +670,34 @@
 
 				<!-- Slug -->
 				<div class="flex flex-col gap-1.5">
-					<label for="cat-slug" class="text-xs font-medium text-foreground">Slug <span class="text-destructive">*</span></label>
+					<label for="cat-slug" class="text-xs font-medium text-foreground"
+						>Slug <span class="text-destructive">*</span></label
+					>
 					<Input
 						id="cat-slug"
 						bind:value={catForm.slug}
 						placeholder="e.g. graphic-design"
-						class="h-8 text-sm font-mono"
+						class="h-8 font-mono text-sm"
 					/>
 					<p class="text-[11px] text-muted-foreground">Auto-generated from name, but editable.</p>
 				</div>
 
 				<!-- Description -->
 				<div class="flex flex-col gap-1.5">
-					<label for="cat-desc" class="text-xs font-medium text-foreground">Description <span class="text-muted-foreground">(optional)</span></label>
+					<label for="cat-desc" class="text-xs font-medium text-foreground"
+						>Description <span class="text-muted-foreground">(optional)</span></label
+					>
 					<textarea
 						id="cat-desc"
 						bind:value={catForm.desc}
 						placeholder="Short description..."
 						rows={3}
-						class="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+						class="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm transition-all placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none"
 					></textarea>
 				</div>
 			</div>
 
-			<div class="flex gap-2 justify-end mt-5">
+			<div class="mt-5 flex justify-end gap-2">
 				<button
 					class="sprd-btn sprd-btn--outline sprd-btn--sm"
 					onclick={() => (catModalOpen = false)}
@@ -648,13 +728,14 @@
 		<AlertDialogHeader>
 			<AlertDialogTitle>Delete category?</AlertDialogTitle>
 			<AlertDialogDescription>
-				Category <span class="font-medium text-foreground">"{targetDeleteCat?.name}"</span> will be permanently removed.
+				Category <span class="font-medium text-foreground">"{targetDeleteCat?.name}"</span> will be permanently
+				removed.
 			</AlertDialogDescription>
 		</AlertDialogHeader>
 		<AlertDialogFooter>
 			<AlertDialogCancel onclick={() => (deleteCatOpen = false)}>Cancel</AlertDialogCancel>
 			<AlertDialogAction
-				class="bg-destructive text-white hover:bg-destructive/90 flex items-center gap-2"
+				class="flex items-center gap-2 bg-destructive text-white hover:bg-destructive/90"
 				onclick={confirmDeleteCategory}
 				disabled={isDeletingCat}
 			>
@@ -667,20 +748,49 @@
 
 <style>
 	.sprd-btn {
-		display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-		height: 36px; padding: 0 14px; border-radius: 6.5px;
-		font-family: inherit; font-size: 14px; font-weight: 500; letter-spacing: -0.01em;
-		border: 1px solid transparent; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		height: 36px;
+		padding: 0 14px;
+		border-radius: 6.5px;
+		font-family: inherit;
+		font-size: 14px;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+		border: 1px solid transparent;
+		cursor: pointer;
+		transition: all 0.15s;
+		white-space: nowrap;
 		text-decoration: none;
 	}
-	.sprd-btn:active:not(:disabled) { transform: translateY(1px); }
-	.sprd-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-	.sprd-btn--default { background: var(--primary); color: var(--primary-foreground); }
-	.sprd-btn--default:hover:not(:disabled) { background: oklch(0.86 0.17 91 / 0.82); }
-	.sprd-btn--outline {
-		background: var(--background); color: var(--foreground);
-		border-color: var(--border); box-shadow: var(--shadow-xs);
+	.sprd-btn:active:not(:disabled) {
+		transform: translateY(1px);
 	}
-	.sprd-btn--outline:hover:not(:disabled) { background: oklch(0.94 0.003 248); }
-	.sprd-btn--sm { height: 30px; padding: 0 10px; font-size: 13px; }
+	.sprd-btn:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+	}
+	.sprd-btn--default {
+		background: var(--primary);
+		color: var(--primary-foreground);
+	}
+	.sprd-btn--default:hover:not(:disabled) {
+		background: oklch(0.86 0.17 91 / 0.82);
+	}
+	.sprd-btn--outline {
+		background: var(--background);
+		color: var(--foreground);
+		border-color: var(--border);
+		box-shadow: var(--shadow-xs);
+	}
+	.sprd-btn--outline:hover:not(:disabled) {
+		background: oklch(0.94 0.003 248);
+	}
+	.sprd-btn--sm {
+		height: 30px;
+		padding: 0 10px;
+		font-size: 13px;
+	}
 </style>

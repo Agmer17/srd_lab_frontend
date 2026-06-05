@@ -148,7 +148,7 @@
 
 <div class="min-h-0 overflow-y-auto bg-background/95 pb-12 text-foreground">
 	<main class="mx-auto max-w-6xl space-y-8 p-4 sm:p-6 lg:p-8">
-		<div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+		<div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
 			<div class="space-y-4">
 				<div class="flex items-center justify-between gap-4 lg:justify-start">
 					<div class="space-y-1">
@@ -195,15 +195,6 @@
 						New Project
 					</Button>
 				</div>
-
-				<CreateProjectModal
-					bind:open={isDialogOpen}
-					orders={availableOrders}
-					{projectRoles}
-					onSuccess={async () => {
-						await invalidateAll();
-					}}
-				/>
 			{/if}
 		</div>
 
@@ -370,3 +361,12 @@
 		{/if}
 	</main>
 </div>
+
+<CreateProjectModal
+	bind:open={isDialogOpen}
+	orders={availableOrders}
+	{projectRoles}
+	onSuccess={async () => {
+		await invalidateAll();
+	}}
+/>

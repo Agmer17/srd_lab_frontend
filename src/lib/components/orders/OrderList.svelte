@@ -8,10 +8,9 @@
 	import { formatPrice } from '$lib/string_utils';
 	import OrderDetails from './OrderDetails.svelte';
 	import type { ApiResponse } from '$lib/types/api';
-	import { Toaster } from 'svelte-sonner';
-	import { themeData } from '$lib/state/theme.svelte';
-	import { toast } from 'svelte-sonner';
+	import { toast, Toaster } from 'svelte-sonner';
 	import { invalidateAll } from '$app/navigation';
+	import { themeData } from '$lib/state/theme.svelte';
 
 	let { orders = [], isAdmin }: { orders: OrderListDTO[]; isAdmin: boolean } = $props();
 
@@ -32,7 +31,7 @@
 		unpaid: 'bg-muted text-muted-foreground border-transparent',
 		failed: 'bg-destructive text-destructive-foreground hover:bg-destructive/80',
 		expired: 'bg-orange-500/10 text-orange-600 border-orange-200',
-		cancelled: 'bg-destructive text-destructive-foreground hover:bg-destructive/80' // Sesuai permintaan
+		cancelled: 'bg-destructive text-destructive-foreground hover:bg-destructive/80'
 	};
 
 	let openDetails = $state(false);
@@ -41,7 +40,6 @@
 
 	async function changeOrderStatus(id: string | undefined, newStatus: string) {
 		if (!id) return;
-		// console.log(newStatus);
 		const updatePromise = fetch('/api/orders/update/' + id + '/status', {
 			method: 'PATCH',
 			body: JSON.stringify({ status: newStatus }),
@@ -53,7 +51,6 @@
 			if (!apiResponse.success) {
 				throw new Error(parseError(apiResponse.error));
 			}
-
 			await invalidateAll();
 			return apiResponse;
 		});
@@ -157,8 +154,8 @@
 										{order.product?.name || 'Unknown Product'}
 									</span>
 									<span class="max-w-[150px] truncate font-mono text-[10px] text-muted-foreground">
-										{order.id.split('-')[0]}</span
-									>
+										{order.id.split('-')[0]}
+									</span>
 								</div>
 							</Table.Cell>
 
@@ -199,9 +196,7 @@
 								{:else if order.status.toLowerCase() === 'cancelled'}
 									<Badge variant="destructive">Cancelled</Badge>
 								{:else}
-									<Badge variant="outline">
-										{order.status}
-									</Badge>
+									<Badge variant="outline">{order.status}</Badge>
 								{/if}
 							</Table.Cell>
 
@@ -222,7 +217,6 @@
 												>
 													{p.status}
 												</Badge>
-
 												{#if p.method}
 													<span
 														class="text-[10px] font-medium tracking-tighter text-muted-foreground uppercase"
@@ -231,8 +225,6 @@
 													</span>
 												{/if}
 											</div>
-										{:else}
-											<span class="text-[10px] italic text-muted-foreground">No payment info</span>
 										{/each}
 									</div>
 								{:else}
@@ -259,4 +251,4 @@
 	order={selectedOrders}
 	onStatusChange={changeOrderStatus}
 	showChangeButton={isAdmin}
-></OrderDetails>
+/>
