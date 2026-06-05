@@ -220,8 +220,8 @@
 				</div>
 				<h1 class="mb-3 text-4xl font-bold tracking-tight text-foreground">Services Catalogue</h1>
 				<p class="text-base leading-relaxed text-muted-foreground">
-					Pilih jasa editing yang Anda butuhkan dan Tim kami akan langsung mulai garap materi Anda
-					hari ini juga.
+					Choose the editing service you need and our team will start working on your materials
+					today.
 				</p>
 			</div>
 
@@ -236,7 +236,7 @@
 						<input
 							type="text"
 							bind:value={search}
-							placeholder="Cari layanan..."
+							placeholder="Search services..."
 							class="w-full rounded-xl border border-border bg-card py-2.5 pr-4 pl-10 text-sm ring-primary/30 transition-all outline-none focus:border-primary/50 focus:ring-2"
 						/>
 					</div>
@@ -269,7 +269,7 @@
 				</div>
 
 				<span class="shrink-0 text-sm font-medium text-muted-foreground">
-					{filtered.length} layanan
+					{filtered.length} {filtered.length === 1 ? 'service' : 'service(s)'}
 				</span>
 			</div>
 
@@ -281,8 +281,8 @@
 					<div class="flex h-14 w-14 items-center justify-center rounded-full bg-secondary/50">
 						<RiSearchLine class="h-6 w-6 text-muted-foreground" />
 					</div>
-					<h3 class="font-semibold text-foreground">Layanan tidak ditemukan</h3>
-					<p class="text-sm text-muted-foreground">Coba kata kunci atau kategori lain</p>
+					<h3 class="font-semibold text-foreground">No services found</h3>
+					<p class="text-sm text-muted-foreground">Try a different keyword or category</p>
 					<Button
 						variant="outline"
 						size="sm"
@@ -398,7 +398,7 @@
 						class="gap-1.5 rounded-xl text-muted-foreground hover:text-foreground"
 					>
 						<RiArrowLeftLine class="h-4 w-4" />
-						<span class="text-sm">Kembali</span>
+						<span class="text-sm">Back</span>
 					</Button>
 					<Button
 						variant="ghost"
@@ -420,7 +420,7 @@
 						{#if productImages.length > 0}
 							<img
 								src={productImages[currentImageIndex]}
-								alt="{selected.name} — foto {currentImageIndex + 1}"
+								alt="{selected.name} — photo {currentImageIndex + 1}"
 								class="h-full w-full object-cover transition-all duration-500"
 							/>
 							{#if productImages.length > 1}
@@ -457,7 +457,7 @@
 												e.stopPropagation();
 												currentImageIndex = i;
 											}}
-											aria-label="Foto {i + 1}"
+											aria-label="Photo {i + 1}"
 										></button>
 									{/each}
 								</div>
@@ -483,12 +483,12 @@
 								</Badge>
 							{/if}
 							<Badge variant="outline" class="gap-1 rounded-lg text-[11px]">
-								<RiStarFill class="h-3 w-3 text-yellow-500" /> 4.8 (24 ulasan)
+								<RiStarFill class="h-3 w-3 text-yellow-500" /> 4.8 (24 reviews)
 							</Badge>
 						</div>
 						<h2 class="mb-2 text-2xl leading-snug font-bold tracking-tight">{selected.name}</h2>
 						<p class="text-sm leading-relaxed text-muted-foreground">
-							{selected.description || 'Belum ada deskripsi untuk layanan ini.'}
+							{selected.description || 'No description available for this service.'}
 						</p>
 					</div>
 
@@ -496,7 +496,7 @@
 
 					<!-- Benefit highlights -->
 					<div class="grid grid-cols-3 gap-3">
-						{#each [{ icon: RiFlashlightLine, label: 'Fast Delivery', sub: 'Cepat & tepat waktu' }, { icon: RiBrushLine, label: 'Pro Quality', sub: 'Tim berpengalaman' }, { icon: RiUserSmileLine, label: 'Revisi Gratis', sub: 'Sampai puas' }] as item}
+						{#each [{ icon: RiFlashlightLine, label: 'Fast Delivery', sub: 'Quick & on time' }, { icon: RiBrushLine, label: 'Pro Quality', sub: 'Experienced team' }, { icon: RiUserSmileLine, label: 'Free Revisions', sub: 'Until satisfied' }] as item}
 							<div
 								class="flex flex-col items-center gap-1.5 rounded-xl border border-border/40 bg-secondary/30 p-3 text-center"
 							>
@@ -520,7 +520,7 @@
 							class="flex items-center gap-2 text-sm font-bold tracking-wider text-foreground uppercase"
 						>
 							<RiStarFill class="h-4 w-4 text-primary" />
-							Ulasan Pelanggan
+							Customer Reviews
 						</h3>
 
 						{#if isLoadingReviews}
@@ -562,7 +562,7 @@
 						{:else}
 							<div class="rounded-xl border border-dashed p-5 text-center">
 								<p class="text-sm text-muted-foreground italic">
-									Belum ada ulasan untuk layanan ini.
+									No reviews yet for this service.
 								</p>
 							</div>
 						{/if}
@@ -573,13 +573,13 @@
 				<div class="border-t border-border bg-card p-4">
 					<div class="mb-3 flex items-center justify-between">
 						<div>
-							<p class="mb-0.5 text-xs text-muted-foreground">Total harga</p>
+							<p class="mb-0.5 text-xs text-muted-foreground">Total price</p>
 							<span class="font-mono text-2xl font-bold tracking-tight text-foreground"
 								>{formatPrice(selected.price)}</span
 							>
 						</div>
 						<div class="text-right">
-							<p class="text-[10px] text-muted-foreground">Pembayaran aman</p>
+							<p class="text-[10px] text-muted-foreground">Secure payment</p>
 							<p class="text-[10px] font-semibold text-primary">QRIS / VA</p>
 						</div>
 					</div>
@@ -588,7 +588,7 @@
 						disabled={isOrdering}
 						class="w-full gap-2 rounded-xl py-5 text-base font-bold transition-all hover:scale-[1.01] active:scale-[0.99]"
 					>
-						{isOrdering ? 'Memproses...' : 'Pesan Sekarang'}
+						{isOrdering ? 'Processing...' : 'Order Now'}
 						{#if isOrdering}
 							<RiRefreshLine class="h-5 w-5 animate-spin" />
 						{:else}
@@ -600,7 +600,7 @@
 		{/if}
 	{:catch}
 		<div class="flex flex-col items-center justify-center gap-3 p-8 text-center">
-			<p class="font-medium text-destructive">Gagal memuat produk. Pastikan backend aktif.</p>
+			<p class="font-medium text-destructive">Failed to load products. Please make sure the backend is running.</p>
 		</div>
 	{/await}
 
@@ -622,20 +622,20 @@
 					>
 						<RiShieldCheckFill class="h-8 w-8 text-primary" />
 					</div>
-					<h3 class="mb-1 text-xl font-bold tracking-tight">Login Diperlukan</h3>
+					<h3 class="mb-1 text-xl font-bold tracking-tight">Login Required</h3>
 					<p class="mb-6 text-sm leading-relaxed text-muted-foreground">
-						Kamu perlu login sebelum memesan agar transaksimu bisa dilacak.
+						You need to log in before placing an order so your transaction can be tracked.
 					</p>
 					<div class="flex flex-col gap-2">
 						<Button onclick={() => goto('/auth')} class="w-full rounded-xl py-2.5">
-							Ke Halaman Login
+							Go to Login
 						</Button>
 						<Button
 							variant="ghost"
 							onclick={() => (showAuthPopup = false)}
 							class="w-full rounded-xl py-2.5 text-muted-foreground"
 						>
-							Batal
+							Cancel
 						</Button>
 					</div>
 				</div>
@@ -662,9 +662,9 @@
 					>
 						<RiCheckboxCircleLine class="h-8 w-8" />
 					</div>
-					<h3 class="mb-1 text-xl font-bold tracking-tight">Konfirmasi Pesanan</h3>
+					<h3 class="mb-1 text-xl font-bold tracking-tight">Confirm Order</h3>
 					<p class="mb-6 text-sm leading-relaxed text-muted-foreground">
-						Yakin ingin memesan layanan ini? Kamu akan diarahkan ke halaman pembayaran.
+						Are you sure you want to order this service? You will be redirected to the payment page.
 					</p>
 					<div class="flex flex-col gap-2">
 						<Button
@@ -673,7 +673,7 @@
 							class="w-full gap-2 rounded-xl py-2.5"
 						>
 							{#if isOrdering}<RiRefreshLine class="h-4 w-4 animate-spin" />{/if}
-							Ya, Konfirmasi Pesanan
+							Yes, Confirm Order
 						</Button>
 						<Button
 							variant="ghost"
@@ -681,7 +681,7 @@
 							disabled={isOrdering}
 							class="w-full rounded-xl py-2.5 text-muted-foreground"
 						>
-							Batal
+							Cancel
 						</Button>
 					</div>
 				</div>

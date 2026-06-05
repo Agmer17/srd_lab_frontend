@@ -22,8 +22,8 @@
 	const CATEGORY_TILES = [
 		{
 			id: 'design',
-			label: 'Edit Desain Media Sosial',
-			sub: 'Desain feed, story, poster, dan aset grafis siap unggah.',
+			label: 'Social Media Design Editing',
+			sub: 'Feed, story, poster, and graphic assets ready to upload.',
 			Icon: RiPenNibLine,
 			bg: 'var(--primary)',
 			fg: 'var(--primary-foreground)',
@@ -31,8 +31,8 @@
 		},
 		{
 			id: 'video',
-			label: 'Edit Video Content',
-			sub: 'Rakitan footage jadi konten video dinamis dan interaktif.',
+			label: 'Video Content Editing',
+			sub: 'Turn raw footage into dynamic and engaging video content.',
 			Icon: RiVideoLine,
 			bg: 'var(--secondary)',
 			fg: '#fff',
@@ -40,8 +40,8 @@
 		},
 		{
 			id: 'bumper',
-			label: 'Edit Video Bumper',
-			sub: 'Animasi motion graphic untuk intro/outro brand premium.',
+			label: 'Bumper Video Editing',
+			sub: 'Motion graphic animations for premium brand intros/outros.',
 			Icon: RiSparkling2Line,
 			bg: 'var(--accent)',
 			fg: '#fff',
@@ -64,7 +64,7 @@
 			project: 'TikTok Ad Campaign',
 			category: 'video',
 			tint: 'var(--secondary)',
-			result: '2.1 juta views in 7 days'
+			result: '2.1M views in 7 days'
 		},
 		{
 			id: 'po3',
@@ -108,7 +108,7 @@
 			company: 'PT Maju Digital',
 			rating: 5,
 			comment:
-				'Hasil kerja SPRDlab sangat memuaskan. Branding kami sekarang jauh lebih kuat dan profesional dari sebelumnya.'
+				"SPRDlab's work was outstanding. Our branding is now far stronger and more professional than before."
 		},
 		{
 			id: 't2',
@@ -117,7 +117,7 @@
 			company: 'Warung Digital',
 			rating: 5,
 			comment:
-				'Campaign TikTok kami viral! Tim SPRDlab paham banget audience kami. Sangat rekomendasikan untuk UMKM.'
+				'Our TikTok campaign went viral! The SPRDlab team really understands our audience. Highly recommended for small businesses.'
 		},
 		{
 			id: 't3',
@@ -126,7 +126,7 @@
 			company: 'Startup Nusantara',
 			rating: 5,
 			comment:
-				'Pitch deck yang dibuat membantu kami closed funding Series A. Profesional, kreatif, dan selalu on-time.'
+				'The pitch deck they created helped us close our Series A funding. Professional, creative, and always on time.'
 		},
 		{
 			id: 't4',
@@ -135,7 +135,7 @@
 			company: 'Toko Batik Indah',
 			rating: 5,
 			comment:
-				'CTR marketplace kami naik 65% setelah pakai foto produk dari SPRDlab. Worth every penny, highly recommended!'
+				'Our marketplace CTR jumped 65% after using product photos from SPRDlab. Worth every penny, highly recommended!'
 		}
 	];
 
@@ -147,10 +147,10 @@
 </script>
 
 <svelte:head>
-	<title>SPRD Lab Creative — Bikin Konten Media Sosial & Video Makin Stand Out!</title>
+	<title>SPRD Lab Creative — Make Your Social Media Content & Video Brand Stand Out!</title>
 	<meta
 		name="description"
-		content="Jasa edit desain media sosial, video konten, dan animasi bumper profesional. Pesan praktis, revisi terarah, dan bayar instan."
+		content="Professional social media design editing, video content, and bumper animation services. Order easily, get focused revisions, and pay instantly."
 	/>
 </svelte:head>
 
@@ -165,18 +165,18 @@
 			</div>
 
 			<h1 class="home-hero-h1">
-				Bikin Konten Media Sosial<br />
-				dan <span class="home-hero-h1-accent">Video</span> Brand Kamu Makin Stand Out!
+				Make Your Social Media Content<br />
+				and <span class="home-hero-h1-accent">Video</span> Brand Stand Out!
 			</h1>
 
 			<p class="home-hero-sub">
-				Punya materi mentah tapi bingung ngeditnya? Serahkan urusan visual brand Anda pada ahlinya.
-				Pesan jasanya cepat, revisi terarah, dan transaksi super praktis
+				Got raw materials but not sure how to edit them? Leave your brand visuals to the experts.
+				Order fast, get focused revisions, and pay with ease.
 			</p>
 
 			<div class="home-hero-cta">
 				<button class="sprd-btn sprd-btn--default sprd-btn--lg" onclick={() => goto('/products')}>
-					Pesan Sekarang <RiArrowRightLine class="ml-1 inline-block h-5 w-5" />
+					Order Now <RiArrowRightLine class="ml-1 inline-block h-5 w-5" />
 				</button>
 				<button class="sprd-btn sprd-btn--outline sprd-btn--lg" onclick={() => goto('/auth')}>
 					Sign in
@@ -197,11 +197,11 @@
 				</div>
 				<div>
 					<div class="home-stat-value">98%</div>
-					<div class="home-stat-label">Kepuasan Pelanggan</div>
+					<div class="home-stat-label">Client Satisfaction</div>
 				</div>
 				<div>
 					<div class="home-stat-value home-stat-value--accent">4.9</div>
-					<div class="home-stat-label">Rata-Rata Rating</div>
+					<div class="home-stat-label">Average Rating</div>
 				</div>
 			</div>
 
@@ -461,8 +461,8 @@
 	<!-- ══ CTA BANNER ════════════════════════════════════════════════ -->
 	<div class="home-cta-banner">
 		<div class="home-cta-text">
-			<h2>Siap Bikin Konten Kamu Makin Keren?</h2>
-			<p>Pilih layanan editing dan tim kreatif kami akan langsung mengeksekusinya.</p>
+			<h2>Ready to Make Your Content Stand Out?</h2>
+			<p>Choose an editing service and our creative team will get right to it.</p>
 		</div>
 		<div class="mt-2 flex w-full shrink-0 flex-wrap gap-2.5 sm:mt-0 sm:w-auto">
 			<button class="sprd-btn sprd-btn--default sprd-btn--lg" onclick={() => goto('/products')}>
